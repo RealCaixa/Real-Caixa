@@ -31,7 +31,8 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const RAIZ = path.join(__dirname, '..');
+const RAIZ = __dirname.includes('/app/') ? '/app' : path.join(__dirname, '..');
+console.log('📁 Raiz detectada:', RAIZ);
 console.log('📁 Raiz:', RAIZ);
 
 app.use(express.static(RAIZ));
