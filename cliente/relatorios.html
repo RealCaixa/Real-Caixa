@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Real Caixa</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .navbar {
+            background: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .navbar .logo { font-size: 22px; font-weight: bold; color: #10b981; text-decoration: none; }
+        .navbar .links { display: flex; gap: 20px; align-items: center; }
+        .navbar .links a { text-decoration: none; color: #475569; font-weight: 600; font-size: 14px; transition: 0.2s; }
+        .navbar .links a:hover { color: #10b981; }
+        .navbar .btn-voltar {
+            background: #10b981;
+            color: white !important;
+            padding: 8px 18px;
+            border-radius: 20px;
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        .subtitulo {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        /* Cards de resumo */
+        .resumo-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .resumo-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #10b981;
+        }
+        .resumo-card h3 {
+            color: #64748b;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .resumo-card .valor {
+            font-size: 28px;
+            font-weight: bold;
+            color: #10b981;
+        }
+        .resumo-card .variacao {
+            font-size: 13px;
+            margin-top: 5px;
+        }
+        .variacao.positiva { color: #10b981; }
+        .variacao.negativa { color: #ef4444; }
+
+        /* Filtros */
+        .filtros {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .filtro-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .filtro-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .filtro-group select,
+        .filtro-group input {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 180px;
+        }
+        .filtro-group select:focus,
+        .filtro-group input:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        .btn-filtrar {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            height: 42px;
+        }
+        .btn-filtrar:hover { background: #059669; }
+        .btn-exportar {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            height: 42px;
+            margin-left: auto;
+        }
+        .btn-exportar:hover { background: #2563eb; }
+
+        /* Tabela de vendas */
+        .tabela-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .tabela-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tabela-header h2 {
+            font-size: 20px;
+            color: #1e293b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: #f8fafc;
+        }
+        th {
+            padding: 15px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-finalizada {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-pendente {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-cancelada {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Gráfico simples com barras */
+        .grafico-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .grafico-container h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .grafico-barras {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            height: 200px;
+            padding: 20px 0;
+        }
+        .barra-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .barra {
+            width: 100%;
+            background: linear-gradient(to top, #10b981, #34d399);
+            border-radius: 8px 8px 0 0;
+            transition: height 0.5s ease;
+            min-height: 10px;
+            position: relative;
+        }
+        .barra:hover {
+            background: linear-gradient(to top, #059669, #10b981);
+        }
+        .barra-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .barra-valor {
+            font-size: 11px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        /* Produtos mais vendidos */
+        .top-produtos {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .top-produtos h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .produto-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .produto-item:last-child {
+            border-bottom: none;
+        }
+        .produto-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .produto-rank {
+            width: 30px;
+            height: 30px;
+            background: #f1f5f9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .rank-1 { background: #fbbf24; color: white; }
+        .rank-2 { background: #94a3b8; color: white; }
+        .rank-3 { background: #cd853f; color: white; }
+        .produto-nome {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .produto-qtd {
+            font-size: 13px;
+            color: #64748b;
+        }
+        .produto-valor {
+            font-weight: bold;
+            font-size: 16px;
+            color: #10b981;
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 20px; }
+            .filtros { flex-direction: column; }
+            .btn-exportar { margin-left: 0; }
+            .grafico-barras { height: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">💰 REAL CAIXA</a>
+        <div class="links">
+            <a href="/cliente/dashboard.html">Dashboard</a>
+            <a href="/cliente/financeiro/index.html">Financeiro</a>
+            <a href="/cliente/relatorios.html" style="color: #10b981;">Relatórios</a>
+            <a href="/cliente/dashboard.html" class="btn-voltar">← Voltar</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>📈 Relatórios de Vendas</h1>
+        <p class="subtitulo">Análise detalhada do desempenho do seu negócio</p>
+
+        <!-- Cards de resumo -->
+        <div class="resumo-cards" id="resumoCards">
+            <div class="resumo-card">
+                <h3>💰 Vendas Hoje</h3>
+                <div class="valor" id="vendasHoje">R$ 0,00</div>
+                <div class="variacao positiva">↑ 12% vs ontem</div>
+            </div>
+            <div class="resumo-card">
+                <h3>📊 Vendas do Mês</h3>
+                <div class="valor" id="vendasMes">R$ 0,00</div>
+                <div class="variacao positiva">↑ 8% vs mês anterior</div>
+            </div>
+            <div class="resumo-card">
+                <h3>🛒 Total de Vendas</h3>
+                <div class="valor" id="totalVendas">0</div>
+                <div class="variacao">Transações realizadas</div>
+            </div>
+            <div class="resumo-card">
+                <h3>💵 Ticket Médio</h3>
+                <div class="valor" id="ticketMedio">R$ 0,00</div>
+                <div class="variacao positiva">Por venda</div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filtros">
+            <div class="filtro-group">
+                <label>Período</label>
+                <select id="periodo" onchange="filtrarRelatorios()">
+                    <option value="hoje">Hoje</option>
+                    <option value="7dias">Últimos 7 dias</option>
+                    <option value="30dias" selected>Últimos 30 dias</option>
+                    <option value="mes">Este mês</option>
+                    <option value="ano">Este ano</option>
+                    <option value="todos">Todos</option>
+                </select>
+            </div>
+            <div class="filtro-group">
+                <label>Forma de Pagamento</label>
+                <select id="formaPagamento" onchange="filtrarRelatorios()">
+                    <option value="todas">Todas</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="cartao_credito">Cartão de Crédito</option>
+                    <option value="cartao_debito">Cartão de Débito</option>
+                    <option value="pix">PIX</option>
+                </select>
+            </div>
+            <div class="filtro-group">
+                <label>Status</label>
+                <select id="status" onchange="filtrarRelatorios()">
+                    <option value="todas">Todas</option>
+                    <option value="finalizada">Finalizada</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="cancelada">Cancelada</option>
+                </select>
+            </div>
+            <button class="btn-filtrar" onclick="filtrarRelatorios()">🔍 Filtrar</button>
+            <button class="btn-exportar" onclick="exportarRelatorio()">📥 Exportar CSV</button>
+        </div>
+
+        <!-- Gráfico de vendas por dia -->
+        <div class="grafico-container">
+            <h2>📊 Vendas nos Últimos 7 Dias</h2>
+            <div class="grafico-barras" id="graficoBarras"></div>
+        </div>
+
+        <!-- Tabela de vendas -->
+        <div class="tabela-container">
+            <div class="tabela-header">
+                <h2>🛒 Últimas Vendas</h2>
+                <span style="color: #64748b; font-size: 14px;" id="totalRegistros">0 registros</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data/Hora</th>
+                            <th>Total</th>
+                            <th>Pagamento</th>
+                            <th>Itens</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaVendas">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                Nenhuma venda encontrada
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Top produtos -->
+        <div class="top-produtos">
+            <h2>🏆 Produtos Mais Vendidos</h2>
+            <div id="topProdutos">
+                <div class="produto-item">
+                    <div class="produto-info">
+                        <div class="produto-rank rank-1">1</div>
+                        <div>
+                            <div class="produto-nome">Açaí 500ml</div>
+                            <div class="produto-qtd">142 unidades</div>
+                        </div>
+                    </div>
+                    <div class="produto-valor">R$ 3.550,00</div>
+                </div>
+                <div class="produto-item">
+                    <div class="produto-info">
+                        <div class="produto-rank rank-2">2</div>
+                        <div>
+                            <div class="produto-nome">Sorvete Casquinha</div>
+                            <div class="produto-qtd">98 unidades</div>
+                        </div>
+                    </div>
+                    <div class="produto-valor">R$ 1.470,00</div>
+                </div>
+                <div class="produto-item">
+                    <div class="produto-info">
+                        <div class="produto-rank rank-3">3</div>
+                        <div>
+                            <div class="produto-nome">Milk Shake 400ml</div>
+                            <div class="produto-qtd">76 unidades</div>
+                        </div>
+                    </div>
+                    <div class="produto-valor">R$ 1.140,00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados simulados para demonstração
+        const dadosVendas = [
+            { id: 1001, data: '2026-06-18 14:30', total: 125.50, pagamento: 'PIX', itens: 5, status: 'finalizada' },
+            { id: 1002, data: '2026-06-18 13:15', total: 89.90, pagamento: 'Dinheiro', itens: 3, status: 'finalizada' },
+            { id: 1003, data: '2026-06-18 12:00', total: 245.00, pagamento: 'Cartão de Crédito', itens: 8, status: 'finalizada' },
+            { id: 1004, data: '2026-06-18 11:30', total: 45.00, pagamento: 'Dinheiro', itens: 2, status: 'finalizada' },
+            { id: 1005, data: '2026-06-17 16:45', total: 178.30, pagamento: 'PIX', itens: 6, status: 'finalizada' },
+            { id: 1006, data: '2026-06-17 15:20', total: 67.80, pagamento: 'Cartão de Débito', itens: 3, status: 'cancelada' },
+            { id: 1007, data: '2026-06-17 14:10', total: 312.00, pagamento: 'Cartão de Crédito', itens: 10, status: 'finalizada' },
+            { id: 1008, data: '2026-06-17 11:00', total: 55.00, pagamento: 'Dinheiro', itens: 2, status: 'finalizada' },
+            { id: 1009, data: '2026-06-16 17:30', total: 198.50, pagamento: 'PIX', itens: 7, status: 'finalizada' },
+            { id: 1010, data: '2026-06-16 16:00', total: 23.00, pagamento: 'Dinheiro', itens: 1, status: 'pendente' },
+        ];
+
+        // Dados para o gráfico
+        const vendasPorDia = [
+            { dia: '12/06', valor: 850 },
+            { dia: '13/06', valor: 1200 },
+            { dia: '14/06', valor: 680 },
+            { dia: '15/06', valor: 1450 },
+            { dia: '16/06', valor: 1100 },
+            { dia: '17/06', valor: 1590 },
+            { dia: '18/06', valor: 980 },
+        ];
+
+        // Inicializar página
+        function inicializar() {
+            atualizarResumo();
+            atualizarGrafico();
+            atualizarTabela(dadosVendas);
+        }
+
+        // Atualizar cards de resumo
+        function atualizarResumo() {
+            const hoje = dadosVendas.filter(v => v.data.includes('2026-06-18') && v.status === 'finalizada');
+            const totalHoje = hoje.reduce((sum, v) => sum + v.total, 0);
+            
+            const mes = dadosVendas.filter(v => v.status === 'finalizada');
+            const totalMes = mes.reduce((sum, v) => sum + v.total, 0);
+            
+            const totalVendas = mes.length;
+            const ticketMedio = totalVendas > 0 ? totalMes / totalVendas : 0;
+
+            document.getElementById('vendasHoje').textContent = `R$ ${totalHoje.toFixed(2)}`;
+            document.getElementById('vendasMes').textContent = `R$ ${totalMes.toFixed(2)}`;
+            document.getElementById('totalVendas').textContent = totalVendas;
+            document.getElementById('ticketMedio').textContent = `R$ ${ticketMedio.toFixed(2)}`;
+        }
+
+        // Atualizar gráfico de barras
+        function atualizarGrafico() {
+            const maxValor = Math.max(...vendasPorDia.map(d => d.valor));
+            const container = document.getElementById('graficoBarras');
+            
+            container.innerHTML = vendasPorDia.map(d => {
+                const altura = (d.valor / maxValor) * 160;
+                return `
+                    <div class="barra-item">
+                        <div class="barra-valor">R$ ${d.valor}</div>
+                        <div class="barra" style="height: ${altura}px;" title="R$ ${d.valor}"></div>
+                        <div class="barra-label">${d.dia}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Atualizar tabela
+        function atualizarTabela(vendas) {
+            const tbody = document.getElementById('tabelaVendas');
+            document.getElementById('totalRegistros').textContent = `${vendas.length} registros`;
+
+            if (vendas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                            📋 Nenhuma venda encontrada para este filtro
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = vendas.map(v => `
+                <tr>
+                    <td><strong>#${v.id}</strong></td>
+                    <td>${v.data}</td>
+                    <td><strong>R$ ${v.total.toFixed(2)}</strong></td>
+                    <td>${v.pagamento}</td>
+                    <td>${v.itens} itens</td>
+                    <td><span class="status-badge status-${v.status}">${v.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Filtrar relatórios
+        function filtrarRelatorios() {
+            const periodo = document.getElementById('periodo').value;
+            const pagamento = document.getElementById('formaPagamento').value;
+            const status = document.getElementById('status').value;
+
+            let vendasFiltradas = [...dadosVendas];
+
+            // Filtrar por período (simplificado)
+            if (periodo === 'hoje') {
+                vendasFiltradas = vendasFiltradas.filter(v => v.data.includes('2026-06-18'));
+            } else if (periodo === '7dias') {
+                vendasFiltradas = vendasFiltradas.filter(v => {
+                    const dia = parseInt(v.data.split('-')[2]);
+                    return dia >= 12;
+                });
+            }
+
+            // Filtrar por pagamento
+            if (pagamento !== 'todas') {
+                const mapaPagamento = {
+                    'dinheiro': 'Dinheiro',
+                    'cartao_credito': 'Cartão de Crédito',
+                    'cartao_debito': 'Cartão de Débito',
+                    'pix': 'PIX'
+                };
+                vendasFiltradas = vendasFiltradas.filter(v => v.pagamento === mapaPagamento[pagamento]);
+            }
+
+            // Filtrar por status
+            if (status !== 'todas') {
+                vendasFiltradas = vendasFiltradas.filter(v => v.status === status);
+            }
+
+            atualizarTabela(vendasFiltradas);
+        }
+
+        // Exportar relatório
+        function exportarRelatorio() {
+            let csv = 'ID,Data,Total,Pagamento,Itens,Status\n';
+            
+            dadosVendas.forEach(v => {
+                csv += `${v.id},${v.data},${v.total.toFixed(2)},${v.pagamento},${v.itens},${v.status}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `relatorio_vendas_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert('✅ Relatório exportado com sucesso!');
+        }
+
+        // Inicializar
+        inicializar();
+    </script>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Caixa - O melhor PDV para seu negócio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; color: #1e293b; }
+        
+        .navbar {
+            background: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 1000;
+        }
+        .navbar .logo { font-size: 22px; font-weight: bold; color: #10b981; text-decoration: none; }
+        .navbar .links { display: flex; gap: 20px; align-items: center; }
+        .navbar .links a { text-decoration: none; color: #475569; font-weight: 600; font-size: 14px; transition: 0.2s; }
+        .navbar .links a:hover { color: #10b981; }
+        .navbar .btn-entrar { background: #10b981; color: white !important; padding: 8px 18px; border-radius: 20px; }
+        .navbar .btn-entrar:hover { background: #059669; }
+
+        .hero {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 140px 20px 80px 20px;
+            text-align: center;
+        }
+        .hero h1 { font-size: 48px; margin-bottom: 15px; font-weight: 800; letter-spacing: -1px; }
+        .hero p { font-size: 20px; margin-bottom: 35px; opacity: 0.95; max-width: 600px; margin-left: auto; margin-right: auto; }
+        
+        .btn {
+            background: white;
+            color: #10b981;
+            padding: 16px 36px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); background: #f8fafc; }
+        
+        .btn-download {
+            background: transparent;
+            color: white;
+            padding: 14px 34px;
+            border: 2px solid white;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 6px;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn-download:hover { transform: translateY(-2px); background: white; color: #10b981; }
+        
+        .versao-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 25px;
+            font-weight: 500;
+        }
+        
+        .features {
+            padding: 80px 20px;
+            text-align: center;
+            background: white;
+        }
+        .features h2 { font-size: 32px; margin-bottom: 50px; color: #1e293b; font-weight: 700; }
+        .features-grid {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .feature {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            width: 280px;
+            padding: 30px 20px;
+            border-radius: 16px;
+            transition: transform 0.3s;
+        }
+        .feature:hover { transform: translateY(-5px); }
+        .feature .icon { font-size: 40px; margin-bottom: 15px; }
+        .feature h3 { font-size: 18px; margin-bottom: 10px; color: #0f172a; }
+        .feature p { font-size: 14px; color: #64748b; line-height: 1.5; }
+        
+        .precos {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 80px 20px;
+            flex-wrap: wrap;
+            background: #f1f5f9;
+        }
+        .plano {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 40px;
+            width: 340px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        .plano:hover { transform: translateY(-5px); box-shadow: 0 20px 30px rgba(0,0,0,0.06); }
+        .plano.destaque { border: 2px solid #10b981; }
+        .plano.destaque .tag-pop { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .plano h3 { font-size: 24px; margin-bottom: 15px; color: #0f172a; font-weight: 700; }
+        .plano .preco { font-size: 44px; color: #10b981; font-weight: bold; margin: 15px 0; }
+        .plano .preco small { font-size: 15px; color: #64748b; font-weight: normal; }
+        .plano ul { text-align: left; margin: 25px 0; list-style: none; }
+        .plano li { padding: 10px 0; color: #475569; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .plano li:before { content: "✓"; color: #10b981; font-weight: bold; font-size: 16px; }
+        
+        .btn-plano {
+            background: #10b981;
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+        .btn-plano:hover { background: #059669; }
+        .btn-plano-secundario { background: #e2e8f0; color: #334155; }
+        .btn-plano-secundario:hover { background: #cbd5e1; }
+        
+        .info-banner { padding: 40px 20px; text-align: center; font-size: 15px; font-weight: 500; }
+        
+        .footer {
+            background: #0f172a;
+            color: #94a3b8;
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 14px;
+            border-top: 1px solid #1e293b;
+        }
+        .footer a { color: #38bdf8; text-decoration: none; margin: 0 6px; }
+        .footer a:hover { text-decoration: underline; }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 9999;
+            display: none;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 20px; }
+            .navbar .links a:not(.btn-entrar) { display: none; }
+            .hero { padding-top: 110px; }
+            .hero h1 { font-size: 32px; }
+            .precos { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="logo">💰 REAL CAIXA</a>
+        <div class="links">
+            <a href="#funcionalidades">Funcionalidades</a>
+            <a href="#planos">Planos</a>
+            <a href="/cliente/financeiro/index.html">Controle Financeiro</a>
+            <a href="/cliente/login.html" class="btn-entrar">🔑 Login Cliente</a>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>O sistema PDV que seu comércio merece</h1>
+        <p>Monitore suas vendas locais offline de forma rápida e controle a saúde financeira de sua sorveteria ou loja diretamente pela nuvem.</p>
+        <div>
+            <a href="#planos" class="btn">Começar Agora</a>
+            <button onclick="baixarInstalador()" class="btn-download">⬇️ Baixar Instalador (v2.1.0)</button>
+        </div>
+        <div class="versao-badge">📌 Versão Atual estável: 2.1.0 — Junho de 2026</div>
+    </div>
+
+    <div class="features" id="funcionalidades">
+        <h2>Por que escolher o Real Caixa?</h2>
+        <div class="features-grid">
+            <div class="feature">
+                <div class="icon">🖥️</div>
+                <h3>Fácil de usar</h3>
+                <p>Interface intuitiva de balcão. Seus colaboradores aprendem a lançar vendas em menos de 5 minutos.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">📱</div>
+                <h3>Venda sem internet</h3>
+                <p>O PDV de balcão funciona 100% offline. Os dados são salvos localmente e sincronizados ao fechar o caixa.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">🔒</div>
+                <h3>Segurança Máxima</h3>
+                <p>Armazenamento redundante seguro criptografado localmente e espelhado em nuvem corporativa.</p>
+            </div>
+            <div class="feature">
+                <div class="icon">📊</div>
+                <h3>Controle Financeiro</h3>
+                <p>Esqueça os cadernos. Gerencie seus custos operacionais como luz, aluguel e fornecedores em um só lugar.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="planos" class="precos">
+        <div class="plano">
+            <h3>Plano Básico</h3>
+            <div class="preco">R$ 0<small>/mês</small></div>
+            <ul>
+                <li>Limite de até 50 produtos cadastrados</li>
+                <li>Até 100 vendas registradas por mês</li>
+                <li>Módulo básico de controle de estoque</li>
+                <li>Relatórios simplificados de balcão</li>
+                <li>Suporte operacional padrão via e-mail</li>
+            </ul>
+            <button onclick="baixarInstalador()" class="btn-plano btn-plano-secundario">📥 Testar Grátis</button>
+        </div>
+
+        <div class="plano destaque">
+            <div class="tag-pop">Recomendado</div>
+            <h3>Plano Profissional</h3>
+            <div class="preco">R$ 49,90<small>/mês</small></div>
+            <ul>
+                <li><strong>Produtos ilimitados</strong> sem barreiras</li>
+                <li><strong>Vendas ilimitadas</strong> no balcão</li>
+                <li>Exportação de relatórios consolidados</li>
+                <li>Controle de sangria e suprimento de caixa</li>
+                <li>Múltiplas formas de pagamento integradas</li>
+                <li>Controle Financeiro web completo integrado</li>
+                <li>Suporte prioritário via WhatsApp corporativo</li>
+            </ul>
+            <button onclick="irParaCadastro()" class="btn-plano">💳 Assinar Agora</button>
+        </div>
+    </div>
+
+    <div class="info-banner" style="background: #fef3c7; color: #92400e;">
+        <h3 style="font-size: 18px; margin-bottom: 5px;">🎯 Novidades da Versão Recente v2.1.0</h3>
+        <p>Inclusão de controle de Sangria e Suprimentos | Integração com Leitor de Código de Barras | Banco de dados otimizado com backup automatizado.</p>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 Real Caixa — Soluções em Automação Comercial. Todos os direitos reservados.</p>
+        <p style="margin: 15px 0; color: #64748b;">📧 contato@realcaixa.com.br  |  📞 (11) 99999-9999</p>
+        <p style="font-size: 13px;">
+            <a href="/cliente/login.html">Área do Cliente</a> | 
+            <a href="/admin/index.html">Portal Admin</a> | 
+            <a href="/cliente/financeiro/index.html">Painel Financeiro</a>
+        </p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function mostrarToast(mensagem, duracao = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = mensagem;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, duracao);
+        }
+
+        function irParaCadastro() {
+            window.location.href = '/cliente/cadastro.html';
+        }
+
+        function baixarInstalador() {
+            const link = document.createElement('a');
+            link.href = '/download/RealCaixa_Setup_2.1.0.exe';
+            link.download = 'RealCaixa_Setup_2.1.0.exe';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            mostrarToast('⬇️ Download iniciado! Verifique sua pasta de downloads.');
+        }
+
+        console.log('✅ Real Caixa - Sistema iniciado com sucesso!');
+    </script>
+</body>
+</html>

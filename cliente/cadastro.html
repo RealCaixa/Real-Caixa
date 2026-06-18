@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Real Caixa</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .cadastro-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 10px;
+        }
+        h2 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #475569;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        .btn-cadastrar {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        .btn-cadastrar:hover { background: #059669; }
+        .plano-info {
+            background: #f0fdf4;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #bbf7d0;
+        }
+        .plano-info h3 {
+            color: #10b981;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .plano-info p {
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .voltar {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .voltar a {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="cadastro-container">
+        <div class="logo">💰 REAL CAIXA</div>
+        <h2>Criar Conta</h2>
+        
+        <div class="success-message" id="successMessage"></div>
+        
+        <form id="cadastroForm" onsubmit="fazerCadastro(event)">
+            <div class="form-group">
+                <label for="nome">Nome completo</label>
+                <input type="text" id="nome" name="nome" placeholder="Seu nome completo" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="telefone">Telefone</label>
+                <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="empresa">Nome da Empresa</label>
+                <input type="text" id="empresa" name="empresa" placeholder="Nome do seu negócio" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" name="senha" placeholder="Mínimo 6 caracteres" required minlength="6">
+            </div>
+            
+            <div class="form-group">
+                <label for="plano">Plano desejado</label>
+                <select id="plano" name="plano" required>
+                    <option value="">Selecione um plano</option>
+                    <option value="basico">Plano Básico - Grátis</option>
+                    <option value="profissional">Plano Profissional - R$ 49,90/mês</option>
+                </select>
+            </div>
+            
+            <div class="plano-info" id="planoInfo">
+                <h3>📋 Resumo do plano</h3>
+                <p id="planoDescricao">Selecione um plano para ver os detalhes.</p>
+            </div>
+            
+            <button type="submit" class="btn-cadastrar">✅ Criar Conta</button>
+        </form>
+        
+        <div class="voltar">
+            <a href="/">← Voltar para página inicial</a>
+        </div>
+    </div>
+
+    <script>
+        // Atualizar informações do plano selecionado
+        document.getElementById('plano').addEventListener('change', function() {
+            const planoDescricao = document.getElementById('planoDescricao');
+            const info = {
+                'basico': '✅ Até 50 produtos<br>✅ Até 100 vendas/mês<br>✅ Suporte por e-mail<br>✅ Grátis para sempre',
+                'profissional': '✅ Produtos ilimitados<br>✅ Vendas ilimitadas<br>✅ Controle financeiro completo<br>✅ Suporte prioritário<br>💰 R$ 49,90/mês'
+            };
+            planoDescricao.innerHTML = info[this.value] || 'Selecione um plano para ver os detalhes.';
+        });
+
+        function fazerCadastro(event) {
+            event.preventDefault();
+            
+            const formData = {
+                nome: document.getElementById('nome').value,
+                email: document.getElementById('email').value,
+                telefone: document.getElementById('telefone').value,
+                empresa: document.getElementById('empresa').value,
+                plano: document.getElementById('plano').value
+            };
+            
+            // Simulação de cadastro (substitua por chamada real à API)
+            console.log('Dados do cadastro:', formData);
+            
+            // Salvar dados localmente
+            localStorage.setItem('cadastroPendente', JSON.stringify(formData));
+            
+            // Mostrar mensagem de sucesso
+            const successMessage = document.getElementById('successMessage');
+            successMessage.style.display = 'block';
+            successMessage.innerHTML = '✅ Cadastro realizado com sucesso! Redirecionando para o login...';
+            
+            // Limpar formulário
+            document.getElementById('cadastroForm').reset();
+            
+            // Redirecionar para login após 2 segundos
+            setTimeout(() => {
+                window.location.href = '/cliente/login.html';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
