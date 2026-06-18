@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 // Importar banco de dados
 const { inicializarBanco } = require('./database');
@@ -49,8 +50,13 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Servir arquivos estáticos da raiz do projeto
-app.use(express.static(path.join(__dirname, '..')));
+// CAMINHO DA RAIZ DO PROJETO
+const RAIZ = path.join(__dirname, '..');
+console.log('📁 Diretório raiz:', RAIZ);
+console.log('📁 Conteúdo da raiz:', fs.readdirSync(RAIZ));
+
+// Servir arquivos estáticos
+app.use(express.static(RAIZ));
 
 // Rotas da API
 app.use('/api/clientes', clientesRoutes);
@@ -64,14 +70,15 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
         version: '2.1.0',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        timestamp: new Date().toISOString()
     });
 });
 
-// Rota para página inicial
+// Rota principal
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    const arquivo = path.join(RAIZ, 'index.html');
+    console.log('📄 Servindo:', arquivo);
+    res.sendFile(arquivo);
 });
 
 // Configurar WebSocket
@@ -83,25 +90,18 @@ async function iniciarServidor() {
     await inicializarBanco();
     
     server.listen(PORT, () => {
-        console.log('========================================');
-        console.log('🚀 REAL CAIXA - Servidor Iniciado!');
-        console.log('========================================');
-        console.log(`📡 API: http://localhost:${PORT}/api`);
-        console.log(`💻 Frontend: http://localhost:${PORT}`);
-        console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
-        console.log(`📊 Health: http://localhost:${PORT}/api/health`);
-        console.log('========================================\n');
+        console.log('🚀 Servidor rodando na porta', PORT);
+        console.log('📡 API: http://localhost:' + PORT + '/api');
+        console.log('💻 Site: http://localhost:' + PORT);
     });
 }
 
-// Tratamento de erros
 process.on('uncaughtException', (error) => {
-    console.error('❌ Erro não capturado:', error);
+    console.error('❌ Erro:', error);
 });
 
 process.on('unhandledRejection', (error) => {
-    console.error('❌ Promise rejeitada:', error);
+    console.error('❌ Erro:', error);
 });
 
-// Iniciar tudo
 iniciarServidor();
