@@ -85,7 +85,19 @@ app.get('/', (req, res) => {
 setupWebSocket(io);
 
 const PORT = process.env.PORT || 3000;
+// Rota de teste
+app.get('/teste', (req, res) => {
+    const fs = require('fs');
+    const RAIZ = path.join(__dirname, '..');
+    const arquivos = fs.readdirSync(RAIZ);
+    res.json({
+        raiz: RAIZ,
+        arquivos: arquivos,
+        indexExiste: fs.existsSync(path.join(RAIZ, 'index.html'))
+    });
+});
 
+const PORT = process.env.PORT || 3000;
 async function iniciarServidor() {
     await inicializarBanco();
     
