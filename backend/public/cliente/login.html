@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Real Caixa</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 30px;
+        }
+        h2 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #475569;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-login:hover { background: #059669; }
+        .links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .links a {
+            color: #10b981;
+            text-decoration: none;
+            font-size: 14px;
+            margin: 0 10px;
+        }
+        .links a:hover { text-decoration: underline; }
+        .voltar {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .voltar a {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">💰 REAL CAIXA</div>
+        <h2>Login do Cliente</h2>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <form id="loginForm" onsubmit="fazerLogin(event)">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" name="senha" placeholder="Sua senha" required>
+            </div>
+            
+            <button type="submit" class="btn-login">🔑 Entrar</button>
+        </form>
+        
+        <div class="links">
+            <a href="/cliente/cadastro.html">Criar conta</a>
+            <a href="#">Esqueci a senha</a>
+        </div>
+        
+        <div class="voltar">
+            <a href="/">← Voltar para página inicial</a>
+        </div>
+    </div>
+
+    <script>
+        function fazerLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Simulação de login (substitua por chamada real à API)
+            if (email && senha) {
+                // Salvar dados de sessão
+                localStorage.setItem('usuarioLogado', JSON.stringify({
+                    email: email,
+                    nome: 'Usuário',
+                    plano: 'Profissional',
+                    dataLogin: new Date().toISOString()
+                }));
+                
+                // Redirecionar para dashboard
+                window.location.href = '/cliente/dashboard.html';
+            } else {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = '❌ Por favor, preencha todos os campos.';
+            }
+        }
+
+        // Verificar se já está logado
+        if (localStorage.getItem('usuarioLogado')) {
+            window.location.href = '/cliente/dashboard.html';
+        }
+    </script>
+</body>
+</html>
