@@ -49,7 +49,7 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Servir arquivos estáticos do frontend
+// Servir arquivos estáticos da raiz do projeto
 app.use(express.static(path.join(__dirname, '..')));
 
 // Rotas da API
@@ -77,14 +77,11 @@ app.get('/', (req, res) => {
 // Configurar WebSocket
 setupWebSocket(io);
 
-// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 
 async function iniciarServidor() {
-    // Inicializar banco de dados
     await inicializarBanco();
     
-    // Iniciar servidor HTTP
     server.listen(PORT, () => {
         console.log('========================================');
         console.log('🚀 REAL CAIXA - Servidor Iniciado!');
@@ -93,8 +90,6 @@ async function iniciarServidor() {
         console.log(`💻 Frontend: http://localhost:${PORT}`);
         console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
         console.log(`📊 Health: http://localhost:${PORT}/api/health`);
-        console.log('========================================');
-        console.log('Pressione Ctrl+C para parar o servidor');
         console.log('========================================\n');
     });
 }
@@ -107,9 +102,6 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (error) => {
     console.error('❌ Promise rejeitada:', error);
 });
-// Rotas para páginas HTML
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
+
 // Iniciar tudo
 iniciarServidor();
