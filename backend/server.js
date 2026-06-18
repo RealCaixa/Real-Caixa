@@ -107,6 +107,9 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (error) => {
     console.error('❌ Promise rejeitada:', error);
 });
-
+// Rotas para páginas HTML
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
 // Iniciar tudo
 iniciarServidor();
