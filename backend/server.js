@@ -7,34 +7,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Encontrar a raiz do projeto automaticamente
-let RAIZ = path.join(__dirname, '..');
-if (!fs.existsSync(path.join(RAIZ, 'index.html'))) {
-    RAIZ = '/app';
-}
-if (!fs.existsSync(path.join(RAIZ, 'index.html'))) {
-    RAIZ = __dirname;
-}
-
-console.log('📁 Raiz:', RAIZ);
-console.log('📄 Arquivos:', fs.readdirSync(RAIZ));
+// Pasta public
+const PUBLIC = path.join(__dirname, 'public');
+console.log('📁 Public:', PUBLIC);
+console.log('📄 Conteúdo:', fs.readdirSync(PUBLIC));
 
 // Servir arquivos estáticos
-app.use(express.static(RAIZ));
+app.use(express.static(PUBLIC));
 
 // Rota principal
 app.get('/', (req, res) => {
-    const indexPath = path.join(RAIZ, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.send('<h1>Real Caixa</h1><p>Index não encontrado em: ' + RAIZ + '</p><p>Arquivos: ' + fs.readdirSync(RAIZ).join(', ') + '</p>');
-    }
+    res.sendFile(path.join(PUBLIC, 'index.html'));
 });
 
 // API Health
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'online', raiz: RAIZ });
+    res.json({ status: 'online', version: '2.1.0' });
 });
 
 const PORT = process.env.PORT || 3000;
