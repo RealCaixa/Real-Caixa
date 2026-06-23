@@ -2,8 +2,10 @@ const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
 const { createPostgresAdapter } = require('./database-adapters/postgresAdapter');
+const logger = require('./logger');
 
 const DEFAULT_DB_PATH = path.join(__dirname, 'realcaixa.db');
+const POSTGRES_SCHEMA_PATH = path.resolve(__dirname, '../database/postgres/schema.sql');
 
 let db;
 let adapter;
@@ -16,6 +18,7 @@ async function inicializarBanco(options = {}) {
     if (provider === 'postgres') {
         adapter = createPostgresAdapter(options);
         await adapter.connect();
+        await inicializarSchemaPostgresSeNecessario(adapter);
         dbPath = 'postgres';
         return adapter;
     }
@@ -39,6 +42,32 @@ async function inicializarBanco(options = {}) {
     salvarBanco();
 
     return db;
+}
+
+async function inicializarSchemaPostgresSeNecessario(postgresAdapter) {
+    const usuariosExiste = await tabelaPostgresExiste(postgresAdapter, 'usuarios');
+    if (usuariosExiste) {
+        return;
+    }
+
+    const schema = fs.readFileSync(POSTGRES_SCHEMA_PATH, 'utf8');
+    await postgresAdapter.query(schema);
+    logger.info('Schema PostgreSQL inicializado automaticamente');
+}
+
+async function tabelaPostgresExiste(postgresAdapter, tabela) {
+    const row = await postgresAdapter.get(
+        `SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_type = 'BASE TABLE'
+              AND table_name = ?
+        ) AS exists`,
+        [tabela]
+    );
+
+    return Boolean(row?.exists);
 }
 
 function criarTabelasCloud() {
