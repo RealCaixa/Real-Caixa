@@ -140,19 +140,33 @@ async function buscarProdutoPorId(empresaId, id) {
 }
 
 async function buscarPorCodigoInterno(empresaId, codigoInterno, ignorarId) {
+    const params = [empresaId, codigoInterno];
+    const where = ['empresa_id = ?', 'codigo_interno = ?'];
+
+    if (ignorarId) {
+        where.push('id <> ?');
+        params.push(Number(ignorarId));
+    }
+
     return buscarUm(
-        `SELECT id FROM produtos
-         WHERE empresa_id = ? AND codigo_interno = ? AND (? IS NULL OR id <> ?)`,
-        [empresaId, codigoInterno, ignorarId || null, ignorarId || null]
+        `SELECT id FROM produtos WHERE ${where.join(' AND ')}`,
+        params
     );
 }
 
 async function buscarPorCodigoBarras(empresaId, codigoBarras, ignorarId) {
     if (!codigoBarras) return null;
+    const params = [empresaId, codigoBarras];
+    const where = ['empresa_id = ?', 'codigo_barras = ?'];
+
+    if (ignorarId) {
+        where.push('id <> ?');
+        params.push(Number(ignorarId));
+    }
+
     return buscarUm(
-        `SELECT id FROM produtos
-         WHERE empresa_id = ? AND codigo_barras = ? AND (? IS NULL OR id <> ?)`,
-        [empresaId, codigoBarras, ignorarId || null, ignorarId || null]
+        `SELECT id FROM produtos WHERE ${where.join(' AND ')}`,
+        params
     );
 }
 
