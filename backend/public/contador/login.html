@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Portal do contador | Real Caixa</title>
+    <link rel="stylesheet" href="/contador/portal.css">
+</head>
+<body class="contador-login">
+    <main class="login-shell">
+        <section class="login-brand">
+            <span class="brand-mark">RC</span>
+            <p class="eyebrow">Real Caixa Cloud</p>
+            <h1>Portal do contador</h1>
+            <p>Acesse empresas autorizadas, fechamentos mensais e relatorios operacionais em um ambiente separado e seguro.</p>
+        </section>
+
+        <form class="login-card" id="contadorLoginForm">
+            <div>
+                <p class="eyebrow">Acesso exclusivo</p>
+                <h2>Entrar</h2>
+            </div>
+            <label>
+                Email
+                <input type="email" name="email" autocomplete="email" required>
+            </label>
+            <label>
+                Senha
+                <input type="password" name="senha" autocomplete="current-password" required minlength="6">
+            </label>
+            <button type="submit">Acessar portal</button>
+            <p class="form-feedback" id="loginFeedback"></p>
+            <a class="muted-link" href="/">Voltar para o site</a>
+        </form>
+    </main>
+
+    <script>
+        const SESSION_KEY = 'realcaixa_contador_session';
+        const form = document.getElementById('contadorLoginForm');
+        const feedback = document.getElementById('loginFeedback');
+
+        if (localStorage.getItem(SESSION_KEY)) {
+            window.location.href = '/contador/dashboard';
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            feedback.textContent = 'Validando acesso...';
+            feedback.className = 'form-feedback';
+
+            const payload = Object.fromEntries(new FormData(form).entries());
+            try {
+                const response = await fetch('/api/contador/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Nao foi possivel entrar.');
+                }
+
+                localStorage.setItem(SESSION_KEY, JSON.stringify({
+                    token: data.token,
+                    contador: data.contador
+                }));
+                window.location.href = '/contador/dashboard';
+            } catch (error) {
+                feedback.textContent = error.message;
+                feedback.className = 'form-feedback is-error';
+            }
+        });
+    </script>
+</body>
+</html>

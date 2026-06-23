@@ -5,205 +5,337 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - Real Caixa</title>
     <style>
+        :root {
+            --bg: #f3f6f4;
+            --surface: #ffffff;
+            --text: #111827;
+            --muted: #5f6f66;
+            --primary: #059669;
+            --primary-strong: #047857;
+            --border: #d9e2dc;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(380px, 0.9fr) minmax(480px, 1.1fr);
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+        .brand-panel {
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 46px;
+            background: #101915;
+            color: #ffffff;
+        }
+        .brand {
+            display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            gap: 12px;
+            font-weight: 900;
+        }
+        .brand-mark {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: var(--primary);
+            box-shadow: 0 14px 32px rgba(5, 150, 105, 0.34);
+        }
+        .brand-copy h1 {
+            max-width: 520px;
+            margin-bottom: 16px;
+            font-size: 40px;
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+        .brand-copy p {
+            max-width: 470px;
+            color: #b7c9bf;
+            line-height: 1.6;
+        }
+        .feature-list {
+            display: grid;
+            gap: 10px;
+        }
+        .feature-list div {
+            padding: 13px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            color: #dbe8e1;
+            font-weight: 800;
+        }
+        .auth-panel {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 34px;
         }
         .cadastro-container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: min(560px, 100%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 34px;
+            box-shadow: 0 18px 40px rgba(17, 24, 39, 0.09);
         }
         .logo {
-            text-align: center;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        h1 {
             font-size: 28px;
-            font-weight: bold;
-            color: #10b981;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-        h2 {
-            text-align: center;
-            color: #1e293b;
-            margin-bottom: 30px;
+        .subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 24px;
         }
-        .form-group {
-            margin-bottom: 20px;
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px;
+        }
+        .form-group.full {
+            grid-column: 1 / -1;
         }
         label {
             display: block;
             margin-bottom: 8px;
-            color: #475569;
-            font-weight: 600;
-            font-size: 14px;
+            color: #33443a;
+            font-weight: 900;
+            font-size: 13px;
         }
         input, select {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            min-height: 44px;
+            padding: 11px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
         }
         input:focus, select:focus {
-            outline: none;
-            border-color: #10b981;
+            outline: 3px solid rgba(5, 150, 105, 0.16);
+            border-color: var(--primary);
+        }
+        .plano-info {
+            grid-column: 1 / -1;
+            background: #dff7eb;
+            padding: 13px;
+            border-radius: 8px;
+            border: 1px solid #b7ebce;
+            color: #075f46;
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.45;
         }
         .btn-cadastrar {
-            width: 100%;
-            padding: 14px;
-            background: #10b981;
-            color: white;
+            grid-column: 1 / -1;
+            min-height: 46px;
+            background: var(--primary);
+            color: #ffffff;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 900;
             cursor: pointer;
-            transition: background 0.3s;
-            margin-top: 10px;
+            box-shadow: 0 12px 24px rgba(5, 150, 105, 0.2);
         }
-        .btn-cadastrar:hover { background: #059669; }
-        .plano-info {
-            background: #f0fdf4;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border: 1px solid #bbf7d0;
+        .btn-cadastrar:hover { background: var(--primary-strong); }
+        .btn-cadastrar:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
         }
-        .plano-info h3 {
-            color: #10b981;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        .plano-info p {
-            color: #475569;
+        .feedback {
+            display: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 18px;
             font-size: 14px;
-            line-height: 1.5;
+            font-weight: 800;
         }
-        .voltar {
+        .feedback.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .feedback.success { background: #dff7eb; color: #075f46; border: 1px solid #b7ebce; }
+        .links {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 18px;
+            color: var(--muted);
         }
-        .voltar a {
-            color: #64748b;
+        .links a {
+            color: var(--primary-strong);
             text-decoration: none;
             font-size: 14px;
+            font-weight: 900;
         }
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-            font-size: 14px;
+        @media (max-width: 980px) {
+            body { grid-template-columns: 1fr; }
+            .brand-panel {
+                min-height: auto;
+                gap: 28px;
+                padding: 28px;
+            }
+            .brand-copy h1 { font-size: 32px; }
+            .auth-panel { min-height: auto; padding: 22px; }
+        }
+        @media (max-width: 620px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .cadastro-container { padding: 24px; }
         }
     </style>
 </head>
 <body>
-    <div class="cadastro-container">
-        <div class="logo">💰 REAL CAIXA</div>
-        <h2>Criar Conta</h2>
-        
-        <div class="success-message" id="successMessage"></div>
-        
-        <form id="cadastroForm" onsubmit="fazerCadastro(event)">
-            <div class="form-group">
-                <label for="nome">Nome completo</label>
-                <input type="text" id="nome" name="nome" placeholder="Seu nome completo" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="email">E-mail</label>
-                <input type="email" id="email" name="email" placeholder="seu@email.com" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="telefone">Telefone</label>
-                <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="empresa">Nome da Empresa</label>
-                <input type="text" id="empresa" name="empresa" placeholder="Nome do seu negócio" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="senha">Senha</label>
-                <input type="password" id="senha" name="senha" placeholder="Mínimo 6 caracteres" required minlength="6">
-            </div>
-            
-            <div class="form-group">
-                <label for="plano">Plano desejado</label>
-                <select id="plano" name="plano" required>
-                    <option value="">Selecione um plano</option>
-                    <option value="basico">Plano Básico - Grátis</option>
-                    <option value="profissional">Plano Profissional - R$ 49,90/mês</option>
-                </select>
-            </div>
-            
-            <div class="plano-info" id="planoInfo">
-                <h3>📋 Resumo do plano</h3>
-                <p id="planoDescricao">Selecione um plano para ver os detalhes.</p>
-            </div>
-            
-            <button type="submit" class="btn-cadastrar">✅ Criar Conta</button>
-        </form>
-        
-        <div class="voltar">
-            <a href="/">← Voltar para página inicial</a>
+    <section class="brand-panel">
+        <div class="brand">
+            <div class="brand-mark">RC</div>
+            <div>Real Caixa Cloud</div>
         </div>
-    </div>
+        <div class="brand-copy">
+            <h1>Crie seu ambiente de gestao comercial.</h1>
+            <p>Cadastre a empresa, ative o portal e prepare a base para operar com PDV offline, estoque, financeiro e sincronizacao.</p>
+        </div>
+        <div class="feature-list">
+            <div>Portal administrativo protegido por JWT</div>
+            <div>Produtos, estoque, financeiro e relatorios</div>
+            <div>Base pronta para integracao com o PDV desktop</div>
+        </div>
+    </section>
+
+    <main class="auth-panel">
+        <section class="cadastro-container">
+            <div class="logo">Nova conta</div>
+            <h1>Criar conta</h1>
+            <p class="subtitle">Informe os dados iniciais da empresa para acessar o Portal Cloud.</p>
+
+            <div class="feedback" id="feedback"></div>
+
+            <form id="cadastroForm" class="form-grid">
+                <div class="form-group">
+                    <label for="nome">Nome completo</label>
+                    <input type="text" id="nome" name="nome" autocomplete="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" autocomplete="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefone">Telefone</label>
+                    <input type="tel" id="telefone" name="telefone" autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label for="empresa">Nome da empresa</label>
+                    <input type="text" id="empresa" name="empresa" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cnpj">CNPJ</label>
+                    <input type="text" id="cnpj" name="cnpj" placeholder="Opcional">
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" autocomplete="new-password" minlength="6" required>
+                </div>
+
+                <div class="form-group full">
+                    <label for="plano">Plano</label>
+                    <select id="plano" name="plano" required>
+                        <option value="basico">Basico - fundacao gratuita</option>
+                        <option value="profissional">Profissional - preparado para operacao completa</option>
+                    </select>
+                </div>
+
+                <div class="plano-info" id="planoInfo">
+                    Basico: 1 usuario, ate 50 produtos e ate 100 vendas por mes.
+                </div>
+
+                <button type="submit" class="btn-cadastrar" id="submitButton">Criar conta</button>
+            </form>
+
+            <div class="links">
+                <a href="/login">Ja tenho conta</a>
+                <span> | </span>
+                <a href="/">Voltar para pagina inicial</a>
+            </div>
+        </section>
+    </main>
 
     <script>
-        // Atualizar informações do plano selecionado
-        document.getElementById('plano').addEventListener('change', function() {
-            const planoDescricao = document.getElementById('planoDescricao');
-            const info = {
-                'basico': '✅ Até 50 produtos<br>✅ Até 100 vendas/mês<br>✅ Suporte por e-mail<br>✅ Grátis para sempre',
-                'profissional': '✅ Produtos ilimitados<br>✅ Vendas ilimitadas<br>✅ Controle financeiro completo<br>✅ Suporte prioritário<br>💰 R$ 49,90/mês'
-            };
-            planoDescricao.innerHTML = info[this.value] || 'Selecione um plano para ver os detalhes.';
+        const SESSION_KEY = 'realcaixa_cloud_session';
+        const planInfo = {
+            basico: 'Basico: 1 usuario, ate 50 produtos e ate 100 vendas por mes.',
+            profissional: 'Profissional: ate 5 usuarios, produtos ampliados e vendas ampliadas.'
+        };
+
+        function saveSession(session) {
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+            localStorage.removeItem(SESSION_KEY);
+        }
+
+        function showFeedback(message, type) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = message;
+            feedback.className = `feedback ${type}`;
+            feedback.style.display = 'block';
+        }
+
+        document.getElementById('plano').addEventListener('change', (event) => {
+            document.getElementById('planoInfo').textContent = planInfo[event.target.value];
         });
 
-        function fazerCadastro(event) {
+        document.getElementById('cadastroForm').addEventListener('submit', async (event) => {
             event.preventDefault();
-            
-            const formData = {
-                nome: document.getElementById('nome').value,
-                email: document.getElementById('email').value,
-                telefone: document.getElementById('telefone').value,
-                empresa: document.getElementById('empresa').value,
-                plano: document.getElementById('plano').value
-            };
-            
-            // Simulação de cadastro (substitua por chamada real à API)
-            console.log('Dados do cadastro:', formData);
-            
-            // Salvar dados localmente
-            localStorage.setItem('cadastroPendente', JSON.stringify(formData));
-            
-            // Mostrar mensagem de sucesso
-            const successMessage = document.getElementById('successMessage');
-            successMessage.style.display = 'block';
-            successMessage.innerHTML = '✅ Cadastro realizado com sucesso! Redirecionando para o login...';
-            
-            // Limpar formulário
-            document.getElementById('cadastroForm').reset();
-            
-            // Redirecionar para login após 2 segundos
-            setTimeout(() => {
-                window.location.href = '/cliente/login.html';
-            }, 2000);
-        }
+
+            const submitButton = document.getElementById('submitButton');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Criando...';
+
+            try {
+                const response = await fetch('/api/auth/cadastro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome: document.getElementById('nome').value,
+                        email: document.getElementById('email').value,
+                        telefone: document.getElementById('telefone').value,
+                        empresa: document.getElementById('empresa').value,
+                        cnpj: document.getElementById('cnpj').value,
+                        senha: document.getElementById('senha').value,
+                        plano: document.getElementById('plano').value
+                    })
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Nao foi possivel criar a conta.');
+                }
+
+                saveSession(data);
+                showFeedback('Conta criada com sucesso. Abrindo dashboard...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 700);
+            } catch (error) {
+                showFeedback(error.message, 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Criar conta';
+            }
+        });
     </script>
 </body>
 </html>

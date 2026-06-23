@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "npm run vercel-build",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "backend/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ]
+}

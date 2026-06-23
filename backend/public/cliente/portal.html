@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal - Real Caixa</title>
+    <link rel="stylesheet" href="/cliente/portal.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="Menu principal">
+            <div class="brand">
+                <div class="brand-mark">RC</div>
+                <div>
+                    <div class="brand-title">Real Caixa</div>
+                    <div class="brand-subtitle">Portal Cloud</div>
+                </div>
+            </div>
+            <nav class="nav-list" id="navList"></nav>
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <div>
+                    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menu">Menu</button>
+                    <div class="breadcrumb" id="breadcrumb">Portal</div>
+                </div>
+                <div class="topbar-actions">
+                    <span class="user-pill" id="userEmail">Carregando...</span>
+                    <button class="logout-button" id="logoutButton" type="button">Sair</button>
+                </div>
+            </header>
+
+            <main class="content">
+                <section class="page-header">
+                    <div>
+                        <h1 class="page-title" id="pageTitle">Carregando...</h1>
+                        <p class="page-description" id="pageDescription">Preparando portal.</p>
+                    </div>
+
+                    <aside class="license-card">
+                        <h2>Empresa</h2>
+                        <div class="company-grid">
+                            <span>Nome</span>
+                            <strong id="companyName">Carregando...</strong>
+                            <span>CNPJ</span>
+                            <strong id="companyDocument">Nao informado</strong>
+                            <span>Plano</span>
+                            <strong id="companyPlan">Basico</strong>
+                            <span>Licenca</span>
+                            <strong><span class="status-badge" id="companyLicense">Ativa</span></strong>
+                        </div>
+                    </aside>
+                </section>
+
+                <div id="pageBody"></div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/cliente/portal.js"></script>
+</body>
+</html>
