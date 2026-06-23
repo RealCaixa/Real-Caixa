@@ -99,6 +99,10 @@ function corsOptions() {
 function criarApp() {
     const app = express();
 
+    if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+        app.set('trust proxy', 1);
+    }
+
     app.use(helmet({
         contentSecurityPolicy: false
     }));

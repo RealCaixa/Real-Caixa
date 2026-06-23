@@ -2,6 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const { createDatabaseAdapter } = require('../database-adapters');
 
+const REQUIRED_TABLES = [
+    'empresas',
+    'usuarios',
+    'licencas',
+    'categorias',
+    'produtos',
+    'filiais',
+    'pdvs',
+    'sync_logs',
+    'assistente_auditoria'
+];
+
 async function main() {
     if (String(process.env.DATABASE_PROVIDER || '').toLowerCase() !== 'postgres') {
         throw new Error('Defina DATABASE_PROVIDER=postgres antes de executar db:postgres:init.');
@@ -18,9 +30,24 @@ async function main() {
     try {
         await adapter.connect();
         await adapter.query(schema);
-        console.log('Schema PostgreSQL aplicado com sucesso.');
+        await validarTabelas(adapter);
+        console.log('Schema PostgreSQL aplicado e validado com sucesso.');
     } finally {
         await adapter.close();
+    }
+}
+
+async function validarTabelas(adapter) {
+    const rows = await adapter.all(
+        `SELECT table_name AS name
+         FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`
+    );
+    const existentes = new Set(rows.map((row) => row.name));
+    const ausentes = REQUIRED_TABLES.filter((table) => !existentes.has(table));
+
+    if (ausentes.length) {
+        throw new Error(`Schema aplicado, mas faltam tabelas obrigatorias: ${ausentes.join(', ')}`);
     }
 }
 

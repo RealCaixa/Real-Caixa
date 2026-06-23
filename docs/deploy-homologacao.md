@@ -140,12 +140,17 @@ vercel env add LOG_LEVEL preview
 
 1. Criar `Web Service`.
 2. Conectar o repositorio.
-3. Definir root/build conforme o projeto:
+3. Manter o root do servico apontando para a raiz do repositorio `REALCAIXA-SITE`.
+4. Definir comandos:
    - Build command: `cd backend && npm install`
+   - Pre-Deploy Command: `cd backend && npm run db:postgres:init`
    - Start command: `cd backend && npm start`
-4. Configurar variaveis de ambiente.
-5. Criar PostgreSQL no Render ou informar `DATABASE_URL` externo.
-6. Rodar `npm run db:postgres:init` antes de liberar o teste.
+5. Configurar variaveis de ambiente.
+6. Criar PostgreSQL no Render ou informar `DATABASE_URL` externo.
+7. Conferir nos logs do deploy a mensagem `Schema PostgreSQL aplicado e validado com sucesso.`
+8. Acessar `/api/health` e confirmar `database_provider: "postgres"`.
+
+Importante: se o Render estiver configurado com root directory `backend`, o arquivo `database/postgres/schema.sql` da raiz pode nao estar disponivel para o deploy. A configuracao recomendada e root na raiz do repositorio e comandos com `cd backend`.
 
 ## Deploy no Railway
 
@@ -257,6 +262,9 @@ npm audit --audit-level=high
 ```
 
 5. Fazer deploy preview/staging.
+   - Render Build command: `cd backend && npm install`
+   - Render Pre-Deploy Command: `cd backend && npm run db:postgres:init`
+   - Render Start command: `cd backend && npm start`
 6. Rodar:
 
 ```bash
@@ -278,6 +286,8 @@ npm run smoke:homologacao
 - [ ] `JWT_SECRET` configurado na Vercel.
 - [ ] `CORS_ORIGINS` inclui a URL de homologacao.
 - [ ] `npm run db:postgres:init` executado.
+- [ ] No Render, Pre-Deploy Command configurado como `cd backend && npm run db:postgres:init`.
+- [ ] Logs mostram `Schema PostgreSQL aplicado e validado com sucesso.`
 - [ ] `npm run check:homologacao` passou.
 - [ ] `/api/health` responde.
 - [ ] `/api/health` mostra `database_provider: "postgres"`.
