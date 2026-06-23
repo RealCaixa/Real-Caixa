@@ -185,10 +185,11 @@ async function registrarPdv(payload) {
 
     const filial = await validarFilialParaAtivacao(empresa.id, payload.filial_id);
     const codigoPdv = limpar(payload.codigo_pdv) || gerarCodigoPdv(payload.nome_pdv || payload.nome, payload.machine_id);
-    const existente = await buscarUm(
-        'SELECT id FROM pdvs WHERE empresa_id = ? AND (codigo_pdv = ? OR (machine_id IS NOT NULL AND machine_id = ?))',
-        [empresa.id, codigoPdv, limpar(payload.machine_id)]
-    );
+    const existente = await buscarPdvExistenteParaRegistro({
+        empresaId: empresa.id,
+        codigoPdv,
+        machineId: payload.machine_id
+    });
     const deviceToken = gerarDeviceToken();
     const tokenHash = hashToken(deviceToken);
 
@@ -509,15 +510,39 @@ async function validarFilial(empresaId, filialId) {
 }
 
 async function validarCodigoDuplicado(empresaId, codigoPdv, ignorarId = null) {
+    const params = [empresaId, limpar(codigoPdv)];
+    const where = ['empresa_id = ?', 'codigo_pdv = ?'];
+
+    if (ignorarId !== null && ignorarId !== undefined && ignorarId !== '') {
+        where.push('id <> ?');
+        params.push(Number(ignorarId));
+    }
+
     const existente = await buscarUm(
-        'SELECT id FROM pdvs WHERE empresa_id = ? AND codigo_pdv = ? AND (? IS NULL OR id <> ?)',
-        [empresaId, limpar(codigoPdv), ignorarId, ignorarId]
+        `SELECT id FROM pdvs WHERE ${where.join(' AND ')}`,
+        params
     );
     if (existente) {
         const error = new Error('Ja existe um PDV com este codigo nesta empresa.');
         error.status = 409;
         throw error;
     }
+}
+
+async function buscarPdvExistenteParaRegistro({ empresaId, codigoPdv, machineId }) {
+    const params = [empresaId, limpar(codigoPdv)];
+    const where = ['empresa_id = ?', 'codigo_pdv = ?'];
+    const machineIdLimpo = limpar(machineId);
+
+    if (machineIdLimpo) {
+        where.push('(machine_id IS NOT NULL AND machine_id = ?)');
+        params.push(machineIdLimpo);
+    }
+
+    return buscarUm(
+        `SELECT id FROM pdvs WHERE ${where[0]} AND (${where.slice(1).join(' OR ')})`,
+        params
+    );
 }
 
 function normalizarCampos(campos) {
