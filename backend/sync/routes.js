@@ -9,7 +9,19 @@ const DIRECAO = 'portal_para_pdv';
 const DIRECAO_ENTRADA = 'pdv_para_portal';
 
 router.get('/auditoria', autenticar, exigirPermissao('dashboard:ver'), async (req, res) => {
-    res.json(await pdvs.listarAuditoriaSync(req.user.empresa_id));
+    try {
+        res.json(await pdvs.listarAuditoriaSync(req.user.empresa_id));
+    } catch (error) {
+        logger.error('Erro controlado na auditoria de sincronizacao', {
+            empresaId: req.user?.empresa_id,
+            erro: error.message
+        });
+        res.status(200).json({
+            pdvs: [],
+            logs: [],
+            erro: error.message || 'Nao foi possivel carregar auditoria de sincronizacao.'
+        });
+    }
 });
 
 router.get('/produtos', autenticarSync, criarHandlerSync('produtos', repository.listarProdutosAlterados));

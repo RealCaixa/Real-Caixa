@@ -6,6 +6,15 @@ const logger = require('./logger');
 
 const DEFAULT_DB_PATH = path.join(__dirname, 'realcaixa.db');
 const POSTGRES_SCHEMA_PATH = path.resolve(__dirname, '../database/postgres/schema.sql');
+const POSTGRES_REQUIRED_TABLES = [
+    'usuarios',
+    'contas_receber',
+    'contas_pagar',
+    'financeiro_categorias',
+    'financeiro_lancamentos',
+    'sync_logs',
+    'pdvs'
+];
 
 let db;
 let adapter;
@@ -45,29 +54,26 @@ async function inicializarBanco(options = {}) {
 }
 
 async function inicializarSchemaPostgresSeNecessario(postgresAdapter) {
-    const usuariosExiste = await tabelaPostgresExiste(postgresAdapter, 'usuarios');
-    if (usuariosExiste) {
+    const faltantes = await tabelasPostgresFaltantes(postgresAdapter, POSTGRES_REQUIRED_TABLES);
+    if (!faltantes.length) {
         return;
     }
 
     const schema = fs.readFileSync(POSTGRES_SCHEMA_PATH, 'utf8');
     await postgresAdapter.query(schema);
-    logger.info('Schema PostgreSQL inicializado automaticamente');
+    logger.info('Schema PostgreSQL inicializado automaticamente', { tabelas_faltantes: faltantes });
 }
 
-async function tabelaPostgresExiste(postgresAdapter, tabela) {
-    const row = await postgresAdapter.get(
-        `SELECT EXISTS (
-            SELECT 1
-            FROM information_schema.tables
-            WHERE table_schema = 'public'
-              AND table_type = 'BASE TABLE'
-              AND table_name = ?
-        ) AS exists`,
-        [tabela]
+async function tabelasPostgresFaltantes(postgresAdapter, tabelas) {
+    const rows = await postgresAdapter.all(
+        `SELECT table_name AS name
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_type = 'BASE TABLE'`
     );
+    const existentes = new Set(rows.map((row) => row.name));
 
-    return Boolean(row?.exists);
+    return tabelas.filter((tabela) => !existentes.has(tabela));
 }
 
 function criarTabelasCloud() {
