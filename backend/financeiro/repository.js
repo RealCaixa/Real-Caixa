@@ -244,12 +244,12 @@ async function contarAVencer(empresaId) {
 
 async function graficosMensais(empresaId) {
     const rows = await executarQuery(
-        `SELECT substr(data, 1, 7) AS mes,
+        `SELECT substr(CAST(data AS TEXT), 1, 7) AS mes,
                 COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END), 0) AS receitas,
                 COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END), 0) AS despesas
          FROM financeiro_lancamentos
          WHERE empresa_id = ?
-         GROUP BY substr(data, 1, 7)
+         GROUP BY substr(CAST(data AS TEXT), 1, 7)
          ORDER BY mes ASC
          LIMIT 12`,
         [empresaId]

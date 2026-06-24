@@ -3,6 +3,9 @@ const { verificarToken } = require('../auth/jwt');
 const users = require('../users/repository');
 const contadorRepo = require('../contador/repository');
 const assistantService = require('./assistantService');
+const logger = require('../logger');
+
+const MENSAGEM_SEM_DADOS = 'Ainda não há informações suficientes para responder.';
 
 const router = express.Router();
 
@@ -82,6 +85,23 @@ async function responder(res, callback) {
     try {
         res.json(await callback());
     } catch (error) {
+        if (!error.status || error.status >= 500) {
+            logger.error('Erro controlado no assistente empresarial', { erro: error.message });
+            return res.status(200).json({
+                pergunta: '',
+                modo: 'simulado',
+                origem: 'portal',
+                resposta: {
+                    tipo: 'sem_dados',
+                    titulo: 'Sem dados suficientes',
+                    texto: MENSAGEM_SEM_DADOS,
+                    cards: [],
+                    dados: null,
+                    sugestoes: assistantService.sugestoes()
+                }
+            });
+        }
+
         res.status(error.status || 500).json({ erro: error.message || 'Erro interno do servidor.' });
     }
 }

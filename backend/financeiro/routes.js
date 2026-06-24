@@ -144,6 +144,10 @@ function fallbackLista(error) {
 function fallbackDashboard(error) {
     return {
         periodo: { inicio: new Date().toISOString().slice(0, 10), fim: new Date().toISOString().slice(0, 10) },
+        contas_a_pagar: 0,
+        contas_a_receber: 0,
+        saldo: 0,
+        lancamentos: [],
         indicadores: {
             faturamento_mes: 0,
             despesas_mes: 0,
@@ -163,7 +167,6 @@ function fallbackDashboard(error) {
             despesas_por_mes: [],
             evolucao_caixa: []
         },
-        lancamentos: [],
         erro: error.message || 'Nao foi possivel carregar indicadores financeiros.'
     };
 }

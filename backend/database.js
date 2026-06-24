@@ -8,12 +8,18 @@ const DEFAULT_DB_PATH = path.join(__dirname, 'realcaixa.db');
 const POSTGRES_SCHEMA_PATH = path.resolve(__dirname, '../database/postgres/schema.sql');
 const POSTGRES_REQUIRED_TABLES = [
     'usuarios',
+    'categorias',
+    'produtos',
     'contas_receber',
     'contas_pagar',
     'financeiro_categorias',
     'financeiro_lancamentos',
     'sync_logs',
-    'pdvs'
+    'pdvs',
+    'sync_vendas',
+    'sync_venda_itens',
+    'sync_venda_pagamentos',
+    'assistente_auditoria'
 ];
 
 let db;

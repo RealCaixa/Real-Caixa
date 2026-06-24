@@ -1,19 +1,20 @@
 const { executarQuery, buscarUm } = require('../database');
+const logger = require('../logger');
 
 async function indicadoresEmpresa(empresaId, periodo = periodoHoje()) {
     return {
         periodo,
-        faturamento: await faturamentoPorPeriodo(empresaId, periodo),
-        lucro_bruto_estimado: await lucroBrutoEstimado(empresaId, periodo),
-        margem_por_produto: await margemPorProduto(empresaId, periodo),
-        produtos_mais_vendidos: await produtosMaisVendidos(empresaId, periodo),
-        produtos_mais_lucrativos: await produtosMaisLucrativos(empresaId, periodo),
-        estoque_baixo: await estoqueBaixo(empresaId),
-        previsao_ruptura: await previsaoRupturaEstoque(empresaId),
-        contas_vencidas: await contasVencidas(empresaId),
-        contas_a_vencer: await contasAVencer(empresaId),
-        ticket_medio: await ticketMedio(empresaId, periodo),
-        vendas_por_forma_pagamento: await vendasPorFormaPagamento(empresaId, periodo)
+        faturamento: await indicadorSeguro('faturamento', () => faturamentoPorPeriodo(empresaId, periodo), { total: 0, vendas: 0 }),
+        lucro_bruto_estimado: await indicadorSeguro('lucro_bruto_estimado', () => lucroBrutoEstimado(empresaId, periodo), { receita: 0, custo: 0, lucro: 0 }),
+        margem_por_produto: await indicadorSeguro('margem_por_produto', () => margemPorProduto(empresaId, periodo), []),
+        produtos_mais_vendidos: await indicadorSeguro('produtos_mais_vendidos', () => produtosMaisVendidos(empresaId, periodo), []),
+        produtos_mais_lucrativos: await indicadorSeguro('produtos_mais_lucrativos', () => produtosMaisLucrativos(empresaId, periodo), []),
+        estoque_baixo: await indicadorSeguro('estoque_baixo', () => estoqueBaixo(empresaId), []),
+        previsao_ruptura: await indicadorSeguro('previsao_ruptura', () => previsaoRupturaEstoque(empresaId), []),
+        contas_vencidas: await indicadorSeguro('contas_vencidas', () => contasVencidas(empresaId), fallbackContas()),
+        contas_a_vencer: await indicadorSeguro('contas_a_vencer', () => contasAVencer(empresaId), fallbackContas()),
+        ticket_medio: await indicadorSeguro('ticket_medio', () => ticketMedio(empresaId, periodo), { valor: 0, vendas: 0 }),
+        vendas_por_forma_pagamento: await indicadorSeguro('vendas_por_forma_pagamento', () => vendasPorFormaPagamento(empresaId, periodo), [])
     };
 }
 
@@ -23,7 +24,7 @@ async function faturamentoPorPeriodo(empresaId, periodo) {
          FROM sync_vendas
          WHERE empresa_id = ? AND date(data_venda) BETWEEN date(?) AND date(?)`,
         [empresaId, periodo.inicio, periodo.fim]
-    );
+    ) || {};
     return { total: numero(row.total), vendas: Number(row.vendas || 0) };
 }
 
@@ -37,7 +38,7 @@ async function lucroBrutoEstimado(empresaId, periodo) {
          LEFT JOIN produtos p ON p.id = i.produto_id AND p.empresa_id = i.empresa_id
          WHERE i.empresa_id = ? AND date(v.data_venda) BETWEEN date(?) AND date(?)`,
         [empresaId, periodo.inicio, periodo.fim]
-    );
+    ) || {};
     const receita = numero(row.receita);
     const custo = numero(row.custo);
     return { receita, custo, lucro: receita - custo };
@@ -107,20 +108,23 @@ async function estoqueBaixo(empresaId) {
 
 async function previsaoRupturaEstoque(empresaId) {
     return (await executarQuery(
-        `SELECT
-            p.id,
-            p.descricao,
-            p.estoque_atual,
-            p.unidade,
-            COALESCE(SUM(i.quantidade), 0) / 30.0 AS media_diaria
-         FROM produtos p
-         LEFT JOIN sync_venda_itens i ON i.produto_id = p.id AND i.empresa_id = p.empresa_id
-         LEFT JOIN sync_vendas v ON v.id = i.venda_id AND v.empresa_id = i.empresa_id
-             AND date(v.data_venda) >= date('now', '-30 day')
-         WHERE p.empresa_id = ? AND p.ativo = 1
-         GROUP BY p.id, p.descricao, p.estoque_atual, p.unidade
-         HAVING media_diaria > 0
-         ORDER BY (p.estoque_atual / media_diaria) ASC
+        `SELECT id, descricao, estoque_atual, unidade, media_diaria
+         FROM (
+            SELECT
+                p.id,
+                p.descricao,
+                p.estoque_atual,
+                p.unidade,
+                COALESCE(SUM(CASE WHEN v.id IS NOT NULL THEN i.quantidade ELSE 0 END), 0) / 30.0 AS media_diaria
+            FROM produtos p
+            LEFT JOIN sync_venda_itens i ON i.produto_id = p.id AND i.empresa_id = p.empresa_id
+            LEFT JOIN sync_vendas v ON v.id = i.venda_id AND v.empresa_id = i.empresa_id
+                AND date(v.data_venda) >= date('now', '-30 day')
+            WHERE p.empresa_id = ? AND p.ativo = 1
+            GROUP BY p.id, p.descricao, p.estoque_atual, p.unidade
+         ) previsao
+         WHERE media_diaria > 0
+         ORDER BY (estoque_atual / media_diaria) ASC
          LIMIT 20`,
         [empresaId]
     )).map((item) => ({
@@ -171,8 +175,27 @@ async function somaConta(tabela, empresaId, filtro) {
          FROM ${tabela}
          WHERE empresa_id = ? AND ${filtro}`,
         [empresaId]
-    );
+    ) || {};
     return { quantidade: Number(row.quantidade || 0), total: numero(row.total) };
+}
+
+async function indicadorSeguro(nome, callback, fallback) {
+    try {
+        return await callback();
+    } catch (error) {
+        logger.warn('Indicador do assistente indisponivel', {
+            indicador: nome,
+            erro: error.message
+        });
+        return fallback;
+    }
+}
+
+function fallbackContas() {
+    return {
+        receber: { quantidade: 0, total: 0 },
+        pagar: { quantidade: 0, total: 0 }
+    };
 }
 
 function periodoHoje() {

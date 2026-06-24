@@ -1,6 +1,9 @@
 const { executarComando } = require('../database');
 const { construirContexto } = require('./dataContextBuilder');
 const { montarPromptInterno } = require('./promptBuilder');
+const logger = require('../logger');
+
+const MENSAGEM_SEM_DADOS = 'Ainda não há informações suficientes para responder.';
 
 async function perguntar({ empresaId, usuarioId = null, contadorId = null, origem, pergunta }) {
     const texto = limpar(pergunta);
@@ -12,7 +15,7 @@ async function perguntar({ empresaId, usuarioId = null, contadorId = null, orige
     const prompt = montarPromptInterno({ pergunta: texto, contexto });
     const resposta = responderPorRegra(texto, contexto);
 
-    await registrarAuditoria({
+    await registrarAuditoriaSegura({
         empresaId,
         usuarioId,
         contadorId,
@@ -35,6 +38,10 @@ function responderPorRegra(pergunta, contexto) {
     const indicadores = contexto.indicadores;
 
     if (incluiAlgum(normalizada, ['quanto vendi hoje', 'vendi hoje', 'faturamento hoje', 'vendas hoje'])) {
+        if (!indicadores.faturamento.vendas && !indicadores.faturamento.total) {
+            return respostaSemDados('faturamento_sem_dados');
+        }
+
         return respostaCard({
             tipo: 'faturamento',
             titulo: 'Faturamento de hoje',
@@ -54,7 +61,7 @@ function responderPorRegra(pergunta, contexto) {
             titulo: 'Produto mais lucrativo',
             texto: produto
                 ? `${produto.descricao} lidera lucro bruto estimado com ${moeda(produto.lucro)} e margem de ${percent(produto.margem_percentual)}.`
-                : 'Ainda nao ha vendas suficientes para calcular produto mais lucrativo.',
+                : MENSAGEM_SEM_DADOS,
             cards: produto ? [
                 card('Produto', produto.descricao),
                 card('Lucro estimado', moeda(produto.lucro)),
@@ -70,7 +77,7 @@ function responderPorRegra(pergunta, contexto) {
             titulo: 'Produto mais vendido',
             texto: produto
                 ? `${produto.descricao} foi o produto mais vendido no periodo, com ${produto.quantidade} unidade(s) e ${moeda(produto.total)}.`
-                : 'Ainda nao ha vendas suficientes para apontar o produto mais vendido.',
+                : MENSAGEM_SEM_DADOS,
             cards: produto ? [
                 card('Produto', produto.descricao),
                 card('Quantidade', produto.quantidade),
@@ -108,6 +115,10 @@ function responderPorRegra(pergunta, contexto) {
     }
 
     if (incluiAlgum(normalizada, ['ticket medio', 'ticket médio', 'media por venda', 'media de venda'])) {
+        if (!indicadores.ticket_medio.vendas) {
+            return respostaSemDados('ticket_medio_sem_dados');
+        }
+
         return respostaCard({
             tipo: 'ticket_medio',
             titulo: 'Ticket medio',
@@ -127,6 +138,14 @@ function responderPorRegra(pergunta, contexto) {
     });
 }
 
+async function registrarAuditoriaSegura(payload) {
+    try {
+        await registrarAuditoria(payload);
+    } catch (error) {
+        logger.warn('Auditoria do assistente nao foi registrada', { erro: error.message });
+    }
+}
+
 async function registrarAuditoria({ empresaId, usuarioId, contadorId, origem, pergunta, tipoResposta }) {
     await executarComando(
         `INSERT INTO assistente_auditoria (
@@ -138,6 +157,15 @@ async function registrarAuditoria({ empresaId, usuarioId, contadorId, origem, pe
 
 function respostaCard({ tipo, titulo, texto, cards = [], dados = null }) {
     return { tipo, titulo, texto, cards, dados, sugestoes: sugestoes() };
+}
+
+function respostaSemDados(tipo = 'sem_dados') {
+    return respostaCard({
+        tipo,
+        titulo: 'Sem dados suficientes',
+        texto: MENSAGEM_SEM_DADOS,
+        cards: []
+    });
 }
 
 function sugestoes() {

@@ -1399,8 +1399,8 @@ test('assistente empresarial responde indicadores e respeita empresa e contador 
         empresa_id: conta.empresa.id
     }, empresaB.body.token);
     assert.equal(bloqueioEmpresa.status, 200);
-    assert.equal(bloqueioEmpresa.body.resposta.tipo, 'faturamento');
-    assert.match(bloqueioEmpresa.body.resposta.texto, /R\$ 0,00|R\$ 0,00/);
+    assert.equal(bloqueioEmpresa.body.resposta.tipo, 'faturamento_sem_dados');
+    assert.match(bloqueioEmpresa.body.resposta.texto, /Ainda/);
 
     const contador = await post('/api/contador/cadastro', {
         nome: 'Contador Assistente',
