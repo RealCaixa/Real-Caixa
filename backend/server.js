@@ -3,6 +3,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
 
 const database = require('./database');
 const logger = require('./logger');
@@ -21,7 +24,9 @@ const assistenteRoutes = require('./assistente/routes');
 
 const PUBLIC = path.join(__dirname, 'public');
 const DOWNLOADS = path.join(__dirname, '..', 'download');
+const VERSION_FILE = path.join(__dirname, '..', 'versao.json');
 const VERSION = '2.1.0';
+const GITHUB_RELEASES_API_URL = 'https://api.github.com/repos/RealCaixa/Real-Caixa/releases/latest';
 const DEFAULT_HOMOLOGACAO_ORIGIN = 'https://realcaixa-homologacao.vercel.app';
 const PORTAL_ROUTES = [
     '/dashboard',
@@ -97,6 +102,94 @@ function corsOptions() {
     };
 }
 
+function requestJson(url, timeoutMs = 5000) {
+    return new Promise((resolve, reject) => {
+        const client = url.startsWith('https:') ? https : http;
+        const req = client.get(url, {
+            headers: {
+                'Accept': 'application/vnd.github+json',
+                'User-Agent': 'realcaixa-site'
+            },
+            timeout: timeoutMs
+        }, (response) => {
+            let body = '';
+
+            response.setEncoding('utf8');
+            response.on('data', (chunk) => {
+                body += chunk;
+            });
+            response.on('end', () => {
+                if (response.statusCode < 200 || response.statusCode >= 300) {
+                    reject(new Error(`GitHub respondeu HTTP ${response.statusCode}`));
+                    return;
+                }
+
+                try {
+                    resolve(JSON.parse(body));
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+
+        req.on('timeout', () => {
+            req.destroy(new Error('Tempo esgotado ao consultar GitHub Releases.'));
+        });
+        req.on('error', reject);
+    });
+}
+
+function versionFromAssetName(name) {
+    const match = String(name || '').match(/RealCaixa_Setup_([\d.]+)\.exe/i);
+    return match ? match[1] : null;
+}
+
+function fallbackInstallerInfo() {
+    try {
+        const config = JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8'));
+        const fileName = `RealCaixa_Setup_${config.versao}.exe`;
+
+        return {
+            version: config.versao,
+            url: config.linkDownload || `/download/${fileName}`,
+            fileName,
+            source: 'versao_json'
+        };
+    } catch (_error) {
+        return {
+            version: VERSION,
+            url: `/download/RealCaixa_Setup_${VERSION}.exe`,
+            fileName: `RealCaixa_Setup_${VERSION}.exe`,
+            source: 'fallback'
+        };
+    }
+}
+
+async function latestInstallerInfo() {
+    const apiUrl = process.env.GITHUB_RELEASES_API_URL || GITHUB_RELEASES_API_URL;
+    const release = await requestJson(apiUrl);
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const asset = assets.find((item) => /^RealCaixa_Setup_[\d.]+\.exe$/i.test(item.name))
+        || assets.find((item) => /\.exe$/i.test(item.name));
+
+    if (!asset || !asset.browser_download_url) {
+        throw new Error('Release mais recente nao possui instalador .exe publicado.');
+    }
+
+    const version = versionFromAssetName(asset.name)
+        || String(release.tag_name || '').replace(/^v/i, '')
+        || VERSION;
+
+    return {
+        version,
+        url: asset.browser_download_url,
+        fileName: asset.name,
+        tagName: release.tag_name || null,
+        publishedAt: release.published_at || null,
+        source: 'github_release'
+    };
+}
+
 function criarApp() {
     const app = express();
 
@@ -155,6 +248,20 @@ function criarApp() {
             persistent_storage: !process.env.VERCEL,
             timestamp: new Date().toISOString()
         });
+    });
+
+    app.get('/api/download/latest', async (_req, res) => {
+        try {
+            res.set('Cache-Control', 'public, max-age=300, s-maxage=300');
+            res.json(await latestInstallerInfo());
+        } catch (error) {
+            logger.warn('Falha ao consultar GitHub Releases para download', { erro: error.message });
+            res.set('Cache-Control', 'public, max-age=60');
+            res.json({
+                ...fallbackInstallerInfo(),
+                warning: 'github_release_unavailable'
+            });
+        }
     });
 
     app.get('/login', (_req, res) => {
@@ -237,5 +344,6 @@ if (require.main === module) {
 module.exports = {
     criarApp,
     start,
-    corsOrigins
+    corsOrigins,
+    latestInstallerInfo
 };

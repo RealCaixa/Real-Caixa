@@ -212,9 +212,9 @@
         <p>Monitore suas vendas locais offline de forma rápida e controle a saúde financeira de sua sorveteria ou loja diretamente pela nuvem.</p>
         <div>
             <a href="#planos" class="btn">Começar Agora</a>
-            <button onclick="baixarInstalador()" class="btn-download">⬇️ Baixar Instalador (v2.1.0)</button>
+            <button id="downloadButton" onclick="baixarInstalador()" class="btn-download">Baixar Instalador</button>
         </div>
-        <div class="versao-badge">📌 Versão Atual estável: 2.1.0 — Junho de 2026</div>
+        <div id="versaoBadge" class="versao-badge">Buscando ultima versao...</div>
     </div>
 
     <div class="features" id="funcionalidades">
@@ -275,7 +275,7 @@
     </div>
 
     <div class="info-banner" style="background: #fef3c7; color: #92400e;">
-        <h3 style="font-size: 18px; margin-bottom: 5px;">🎯 Novidades da Versão Recente v2.1.0</h3>
+        <h3 id="novidadesTitulo" style="font-size: 18px; margin-bottom: 5px;">Novidades da versao recente</h3>
         <p>Inclusão de controle de Sangria e Suprimentos | Integração com Leitor de Código de Barras | Banco de dados otimizado com backup automatizado.</p>
     </div>
 
@@ -303,16 +303,62 @@
             window.location.href = '/cliente/cadastro.html';
         }
 
+        let instaladorAtual = {
+            version: '2.1.0',
+            url: '/download/RealCaixa_Setup_2.1.0.exe',
+            fileName: 'RealCaixa_Setup_2.1.0.exe'
+        };
+
+        function atualizarDownload(info) {
+            if (!info || !info.url) {
+                return;
+            }
+
+            instaladorAtual = {
+                version: info.version || instaladorAtual.version,
+                url: info.url,
+                fileName: info.fileName || `RealCaixa_Setup_${info.version || instaladorAtual.version}.exe`
+            };
+
+            const button = document.getElementById('downloadButton');
+            const badge = document.getElementById('versaoBadge');
+            const novidadesTitulo = document.getElementById('novidadesTitulo');
+
+            if (button) {
+                button.textContent = `Baixar Instalador (v${instaladorAtual.version})`;
+            }
+            if (badge) {
+                badge.textContent = `Versao atual estavel: ${instaladorAtual.version}`;
+            }
+            if (novidadesTitulo) {
+                novidadesTitulo.textContent = `Novidades da versao recente v${instaladorAtual.version}`;
+            }
+        }
+
+        async function carregarInstaladorMaisRecente() {
+            try {
+                const response = await fetch('/api/download/latest', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error('Nao foi possivel consultar a versao mais recente.');
+                }
+                atualizarDownload(await response.json());
+            } catch (error) {
+                atualizarDownload(instaladorAtual);
+                console.warn('Falha ao carregar instalador mais recente', error);
+            }
+        }
+
         function baixarInstalador() {
             const link = document.createElement('a');
-            link.href = '/download/RealCaixa_Setup_2.1.0.exe';
-            link.download = 'RealCaixa_Setup_2.1.0.exe';
+            link.href = instaladorAtual.url;
+            link.download = instaladorAtual.fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             mostrarToast('⬇️ Download iniciado! Verifique sua pasta de downloads.');
         }
 
+        carregarInstaladorMaisRecente();
         console.log('✅ Real Caixa - Sistema iniciado com sucesso!');
     </script>
 </body>

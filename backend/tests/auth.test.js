@@ -1465,6 +1465,41 @@ test('download do instalador oficial fica disponivel na rota publica', async () 
     assert.ok(Number(response.headers.get('content-length') || 0) > 0);
 });
 
+test('download mais recente usa asset da ultima GitHub Release', async () => {
+    const { latestInstallerInfo } = require('../server');
+    const releaseServer = httpFixture((req, res) => {
+        assert.equal(req.url, '/repos/RealCaixa/Real-Caixa/releases/latest');
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({
+            tag_name: 'v2.1.1',
+            published_at: '2026-06-25T12:00:00.000Z',
+            assets: [{
+                name: 'RealCaixa_Setup_2.1.1.exe',
+                browser_download_url: 'https://github.com/RealCaixa/Real-Caixa/releases/download/v2.1.1/RealCaixa_Setup_2.1.1.exe'
+            }]
+        }));
+    });
+
+    await releaseServer.start();
+    const originalUrl = process.env.GITHUB_RELEASES_API_URL;
+    process.env.GITHUB_RELEASES_API_URL = `${releaseServer.url}/repos/RealCaixa/Real-Caixa/releases/latest`;
+
+    try {
+        const info = await latestInstallerInfo();
+        assert.equal(info.version, '2.1.1');
+        assert.equal(info.fileName, 'RealCaixa_Setup_2.1.1.exe');
+        assert.match(info.url, /releases\/download\/v2\.1\.1/);
+        assert.equal(info.source, 'github_release');
+    } finally {
+        if (originalUrl) {
+            process.env.GITHUB_RELEASES_API_URL = originalUrl;
+        } else {
+            delete process.env.GITHUB_RELEASES_API_URL;
+        }
+        await releaseServer.close();
+    }
+});
+
 test('exclusao logica remove produto e categoria das listagens ativas', async () => {
     const { token } = await loginCliente();
 
@@ -1587,6 +1622,26 @@ async function parse(response) {
         status: response.status,
         body: await response.json()
     };
+}
+
+function httpFixture(handler) {
+    const fixture = {
+        server: null,
+        url: null,
+        async start() {
+            this.server = require('http').createServer(handler);
+            await new Promise((resolve) => this.server.listen(0, '127.0.0.1', resolve));
+            const { port } = this.server.address();
+            this.url = `http://127.0.0.1:${port}`;
+        },
+        async close() {
+            if (this.server) {
+                await new Promise((resolve) => this.server.close(resolve));
+            }
+        }
+    };
+
+    return fixture;
 }
 
 function criarStorageMemoria() {
