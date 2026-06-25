@@ -1457,6 +1457,14 @@ test('assistente empresarial responde indicadores e respeita empresa e contador 
     assert.match(portalJs, /api\/assistente\/perguntar/);
 });
 
+test('download do instalador oficial fica disponivel na rota publica', async () => {
+    const response = await fetch(`${baseUrl}/download/RealCaixa_Setup_2.1.0.exe`);
+
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') || '', /application|octet-stream/i);
+    assert.ok(Number(response.headers.get('content-length') || 0) > 0);
+});
+
 test('exclusao logica remove produto e categoria das listagens ativas', async () => {
     const { token } = await loginCliente();
 

@@ -20,6 +20,7 @@ const contadorRoutes = require('./contador/routes');
 const assistenteRoutes = require('./assistente/routes');
 
 const PUBLIC = path.join(__dirname, 'public');
+const DOWNLOADS = path.join(__dirname, '..', 'download');
 const VERSION = '2.1.0';
 const DEFAULT_HOMOLOGACAO_ORIGIN = 'https://realcaixa-homologacao.vercel.app';
 const PORTAL_ROUTES = [
@@ -181,6 +182,12 @@ function criarApp() {
             res.sendFile(path.join(PUBLIC, 'cliente', 'portal.html'));
         });
     });
+
+    app.use('/download', express.static(DOWNLOADS, {
+        fallthrough: false,
+        immutable: true,
+        maxAge: '1h'
+    }));
 
     app.use(express.static(PUBLIC));
 
