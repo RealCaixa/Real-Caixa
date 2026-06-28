@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { executarComando, executarQuery, buscarUm } = require('../database');
 const filiais = require('../filiais/repository');
+const licencas = require('../licencas/repository');
 
 const STATUS = new Set(['online', 'offline', 'sincronizando', 'erro', 'bloqueado']);
 const LICENCIAMENTO_STATUS = new Set(['ativo', 'bloqueado', 'expirado', 'aguardando_ativacao']);
@@ -131,133 +132,15 @@ async function indicadores(empresaId) {
 }
 
 async function verificarLicenca({ cnpj, codigo }) {
-    const empresa = await buscarEmpresaPorDocumento(cnpj, codigo);
-    if (!empresa) {
-        await registrarLicenciamentoLog({ evento: 'verificar_licenca', status: 'erro', mensagem: 'CNPJ ou codigo nao encontrado.' });
-        const error = new Error('Empresa ou licenca nao encontrada.');
-        error.status = 404;
-        throw error;
-    }
-
-    const licenca = await buscarLicencaDaEmpresa(empresa.id);
-    const status = calcularStatusLicenca(empresa, licenca);
-    await registrarLicenciamentoLog({
-        empresaId: empresa.id,
-        evento: 'verificar_licenca',
-        status,
-        mensagem: status === 'ativo' ? 'Licenca valida.' : 'Licenca nao liberada.'
-    });
-
-    return respostaLicenca({ empresa, licenca, status });
+    return licencas.verificarLicenca({ cnpj, codigo });
 }
 
 async function registrarPdv(payload) {
-    const empresa = await buscarEmpresaPorDocumento(payload.cnpj, payload.codigo_licenca || payload.codigo_empresa);
-    if (!empresa) {
-        await registrarLicenciamentoLog({
-            evento: 'registrar_pdv',
-            status: 'erro',
-            machineId: payload.machine_id,
-            versaoApp: payload.versao_app,
-            mensagem: 'CNPJ ou codigo nao encontrado.'
-        });
-        const error = new Error('Empresa ou licenca nao encontrada.');
-        error.status = 404;
-        throw error;
-    }
-
-    const licenca = await buscarLicencaDaEmpresa(empresa.id);
-    const statusLicenca = calcularStatusLicenca(empresa, licenca);
-    if (statusLicenca !== 'ativo') {
-        await registrarLicenciamentoLog({
-            empresaId: empresa.id,
-            evento: 'registrar_pdv',
-            status: statusLicenca,
-            machineId: payload.machine_id,
-            versaoApp: payload.versao_app,
-            mensagem: 'Licenca nao permite ativacao.'
-        });
-        const error = new Error('Licenca nao permite ativacao deste PDV.');
-        error.status = 403;
-        error.licenciamento_status = statusLicenca;
-        throw error;
-    }
-
-    const filial = await validarFilialParaAtivacao(empresa.id, payload.filial_id);
-    const codigoPdv = limpar(payload.codigo_pdv) || gerarCodigoPdv(payload.nome_pdv || payload.nome, payload.machine_id);
-    const existente = await buscarPdvExistenteParaRegistro({
-        empresaId: empresa.id,
-        codigoPdv,
-        machineId: payload.machine_id
+    return licencas.ativarPdv({
+        ...payload,
+        terminal_uuid: payload.terminal_uuid || payload.machine_id,
+        hostname: payload.hostname || payload.dispositivo_nome
     });
-    const deviceToken = gerarDeviceToken();
-    const tokenHash = hashToken(deviceToken);
-
-    let pdv;
-    if (existente) {
-        await executarComando(
-            `UPDATE pdvs
-             SET filial_id = ?, nome = ?, codigo_pdv = ?, status = 'offline',
-                 ultimo_sync = CURRENT_TIMESTAMP, versao_app = ?, ativo = 1,
-                 device_token_hash = ?, machine_id = ?, dispositivo_nome = ?,
-                 licenciamento_status = 'ativo', registrado_at = COALESCE(registrado_at, CURRENT_TIMESTAMP),
-                 ultimo_acesso = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-             WHERE id = ? AND empresa_id = ?`,
-            [
-                filial.id,
-                limpar(payload.nome_pdv || payload.nome) || 'PDV Desktop',
-                codigoPdv,
-                limpar(payload.versao_app),
-                tokenHash,
-                limpar(payload.machine_id),
-                limpar(payload.dispositivo_nome),
-                existente.id,
-                empresa.id
-            ]
-        );
-        pdv = await buscarPdvPorId(empresa.id, existente.id);
-    } else {
-        const result = await executarComando(
-            `INSERT INTO pdvs (
-                empresa_id, filial_id, nome, codigo_pdv, status, ultimo_sync,
-                versao_app, ativo, device_token_hash, machine_id, dispositivo_nome,
-                licenciamento_status, registrado_at, ultimo_acesso
-             ) VALUES (?, ?, ?, ?, 'offline', CURRENT_TIMESTAMP, ?, 1, ?, ?, ?, 'ativo', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [
-                empresa.id,
-                filial.id,
-                limpar(payload.nome_pdv || payload.nome) || 'PDV Desktop',
-                codigoPdv,
-                limpar(payload.versao_app),
-                tokenHash,
-                limpar(payload.machine_id),
-                limpar(payload.dispositivo_nome)
-            ]
-        );
-        pdv = await buscarPdvPorId(empresa.id, result.lastInsertRowid);
-    }
-
-    await registrarLicenciamentoLog({
-        empresaId: empresa.id,
-        filialId: filial.id,
-        pdvId: pdv.id,
-        codigoPdv: pdv.codigo_pdv,
-        evento: 'registrar_pdv',
-        status: 'ativo',
-        machineId: payload.machine_id,
-        versaoApp: payload.versao_app,
-        mensagem: 'PDV ativado.'
-    });
-
-    return {
-        autorizado: true,
-        device_token: deviceToken,
-        empresa: empresaSeguro(empresa),
-        filial,
-        pdv,
-        licenca: licencaSeguro(licenca),
-        alerta_offline_dias: 7
-    };
 }
 
 async function statusPdv({ codigoPdv, deviceToken }) {

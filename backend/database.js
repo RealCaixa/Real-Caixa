@@ -19,7 +19,9 @@ const POSTGRES_REQUIRED_TABLES = [
     'sync_vendas',
     'sync_venda_itens',
     'sync_venda_pagamentos',
-    'assistente_auditoria'
+    'assistente_auditoria',
+    'licenca_ativacoes',
+    'licenca_logs'
 ];
 
 let db;
@@ -34,6 +36,7 @@ async function inicializarBanco(options = {}) {
         adapter = createPostgresAdapter(options);
         await adapter.connect();
         await inicializarSchemaPostgresSeNecessario(adapter);
+        await migrarSchemaLicenciamentoPostgres(adapter);
         dbPath = 'postgres';
         return adapter;
     }
@@ -159,11 +162,14 @@ function criarTabelasCloud() {
         CREATE TABLE IF NOT EXISTS licencas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             empresa_id INTEGER NOT NULL,
+            codigo_licenca TEXT,
             plano TEXT NOT NULL DEFAULT 'basico',
             status TEXT NOT NULL DEFAULT 'ativa',
             limite_usuarios INTEGER NOT NULL DEFAULT 1,
             limite_produtos INTEGER NOT NULL DEFAULT 50,
             limite_vendas_mes INTEGER NOT NULL DEFAULT 100,
+            limite_pdvs INTEGER NOT NULL DEFAULT 1,
+            limite_filiais INTEGER NOT NULL DEFAULT 1,
             expira_em TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -356,6 +362,7 @@ function criarTabelasCloud() {
     db.run('CREATE INDEX IF NOT EXISTS idx_contador_empresas_contador ON contador_empresas (contador_id, status)');
     db.run('CREATE INDEX IF NOT EXISTS idx_assistente_auditoria_empresa_data ON assistente_auditoria (empresa_id, created_at)');
     db.run('CREATE INDEX IF NOT EXISTS idx_assistente_auditoria_tipo ON assistente_auditoria (tipo_resposta, created_at)');
+    prepararTabelasLicenciamento();
     db.run('CREATE INDEX IF NOT EXISTS idx_filiais_empresa_ativo ON filiais (empresa_id, ativo)');
     db.run(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_filiais_empresa_cnpj
@@ -367,6 +374,113 @@ function criarTabelasCloud() {
     db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_pdvs_empresa_codigo ON pdvs (empresa_id, codigo_pdv)');
 
     prepararCamposMultiempresa();
+}
+
+async function migrarSchemaLicenciamentoPostgres(postgresAdapter) {
+    await postgresAdapter.query(`
+        ALTER TABLE licencas ADD COLUMN IF NOT EXISTS codigo_licenca TEXT;
+        ALTER TABLE licencas ADD COLUMN IF NOT EXISTS limite_pdvs INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE licencas ADD COLUMN IF NOT EXISTS limite_filiais INTEGER NOT NULL DEFAULT 1;
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_licencas_codigo ON licencas (codigo_licenca) WHERE codigo_licenca IS NOT NULL AND codigo_licenca <> '';
+        CREATE INDEX IF NOT EXISTS idx_licencas_empresa_status ON licencas (empresa_id, status);
+
+        CREATE TABLE IF NOT EXISTS licenca_ativacoes (
+            id BIGSERIAL PRIMARY KEY,
+            licenca_id BIGINT NOT NULL REFERENCES licencas(id),
+            empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+            pdv_id BIGINT REFERENCES pdvs(id),
+            codigo_pdv TEXT,
+            terminal_uuid TEXT,
+            hostname TEXT,
+            versao_app TEXT,
+            device_token_hash TEXT,
+            status TEXT NOT NULL DEFAULT 'ativa',
+            ativado_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            ultimo_heartbeat_at TIMESTAMPTZ,
+            revogado_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS licenca_logs (
+            id BIGSERIAL PRIMARY KEY,
+            licenca_id BIGINT REFERENCES licencas(id),
+            empresa_id BIGINT REFERENCES empresas(id),
+            ativacao_id BIGINT REFERENCES licenca_ativacoes(id),
+            evento TEXT NOT NULL,
+            status TEXT NOT NULL,
+            mensagem TEXT,
+            terminal_uuid TEXT,
+            hostname TEXT,
+            versao_app TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_empresa_status ON licenca_ativacoes (empresa_id, status);
+        CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_licenca_status ON licenca_ativacoes (licenca_id, status);
+        CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_terminal ON licenca_ativacoes (empresa_id, terminal_uuid);
+        CREATE INDEX IF NOT EXISTS idx_lic_logs_empresa_data ON licenca_logs (empresa_id, created_at);
+    `);
+}
+
+function prepararTabelasLicenciamento() {
+    adicionarColunaTabelaSeNaoExiste('licencas', 'codigo_licenca', 'TEXT');
+    adicionarColunaTabelaSeNaoExiste('licencas', 'limite_pdvs', 'INTEGER NOT NULL DEFAULT 1');
+    adicionarColunaTabelaSeNaoExiste('licencas', 'limite_filiais', 'INTEGER NOT NULL DEFAULT 1');
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS licenca_ativacoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            licenca_id INTEGER NOT NULL,
+            empresa_id INTEGER NOT NULL,
+            pdv_id INTEGER,
+            codigo_pdv TEXT,
+            terminal_uuid TEXT,
+            hostname TEXT,
+            versao_app TEXT,
+            device_token_hash TEXT,
+            status TEXT NOT NULL DEFAULT 'ativa',
+            ativado_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            ultimo_heartbeat_at TEXT,
+            revogado_at TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (licenca_id) REFERENCES licencas(id),
+            FOREIGN KEY (empresa_id) REFERENCES empresas(id),
+            FOREIGN KEY (pdv_id) REFERENCES pdvs(id)
+        )
+    `);
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS licenca_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            licenca_id INTEGER,
+            empresa_id INTEGER,
+            ativacao_id INTEGER,
+            evento TEXT NOT NULL,
+            status TEXT NOT NULL,
+            mensagem TEXT,
+            terminal_uuid TEXT,
+            hostname TEXT,
+            versao_app TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (licenca_id) REFERENCES licencas(id),
+            FOREIGN KEY (empresa_id) REFERENCES empresas(id),
+            FOREIGN KEY (ativacao_id) REFERENCES licenca_ativacoes(id)
+        )
+    `);
+
+    db.run(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_licencas_codigo
+        ON licencas (codigo_licenca)
+        WHERE codigo_licenca IS NOT NULL AND codigo_licenca <> ''
+    `);
+    db.run('CREATE INDEX IF NOT EXISTS idx_licencas_empresa_status ON licencas (empresa_id, status)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_empresa_status ON licenca_ativacoes (empresa_id, status)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_licenca_status ON licenca_ativacoes (licenca_id, status)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_terminal ON licenca_ativacoes (empresa_id, terminal_uuid)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_lic_logs_empresa_data ON licenca_logs (empresa_id, created_at)');
 }
 
 function migrarTabelaProdutosLegada() {

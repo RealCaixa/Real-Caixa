@@ -61,11 +61,14 @@ CREATE TABLE IF NOT EXISTS assistente_auditoria (
 CREATE TABLE IF NOT EXISTS licencas (
     id BIGSERIAL PRIMARY KEY,
     empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+    codigo_licenca TEXT,
     plano TEXT NOT NULL DEFAULT 'basico',
     status TEXT NOT NULL DEFAULT 'ativa',
     limite_usuarios INTEGER NOT NULL DEFAULT 1,
     limite_produtos INTEGER NOT NULL DEFAULT 50,
     limite_vendas_mes INTEGER NOT NULL DEFAULT 100,
+    limite_pdvs INTEGER NOT NULL DEFAULT 1,
+    limite_filiais INTEGER NOT NULL DEFAULT 1,
     expira_em TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -114,6 +117,38 @@ CREATE TABLE IF NOT EXISTS pdvs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (empresa_id, codigo_pdv)
+);
+
+CREATE TABLE IF NOT EXISTS licenca_ativacoes (
+    id BIGSERIAL PRIMARY KEY,
+    licenca_id BIGINT NOT NULL REFERENCES licencas(id),
+    empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+    pdv_id BIGINT REFERENCES pdvs(id),
+    codigo_pdv TEXT,
+    terminal_uuid TEXT,
+    hostname TEXT,
+    versao_app TEXT,
+    device_token_hash TEXT,
+    status TEXT NOT NULL DEFAULT 'ativa',
+    ativado_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ultimo_heartbeat_at TIMESTAMPTZ,
+    revogado_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS licenca_logs (
+    id BIGSERIAL PRIMARY KEY,
+    licenca_id BIGINT REFERENCES licencas(id),
+    empresa_id BIGINT REFERENCES empresas(id),
+    ativacao_id BIGINT REFERENCES licenca_ativacoes(id),
+    evento TEXT NOT NULL,
+    status TEXT NOT NULL,
+    mensagem TEXT,
+    terminal_uuid TEXT,
+    hostname TEXT,
+    versao_app TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS categorias (
@@ -361,6 +396,12 @@ CREATE INDEX IF NOT EXISTS idx_contador_empresas_empresa ON contador_empresas (e
 CREATE INDEX IF NOT EXISTS idx_contador_empresas_contador ON contador_empresas (contador_id, status);
 CREATE INDEX IF NOT EXISTS idx_assistente_auditoria_empresa_data ON assistente_auditoria (empresa_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_assistente_auditoria_tipo ON assistente_auditoria (tipo_resposta, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_licencas_codigo ON licencas (codigo_licenca) WHERE codigo_licenca IS NOT NULL AND codigo_licenca <> '';
+CREATE INDEX IF NOT EXISTS idx_licencas_empresa_status ON licencas (empresa_id, status);
+CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_empresa_status ON licenca_ativacoes (empresa_id, status);
+CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_licenca_status ON licenca_ativacoes (licenca_id, status);
+CREATE INDEX IF NOT EXISTS idx_lic_ativacoes_terminal ON licenca_ativacoes (empresa_id, terminal_uuid);
+CREATE INDEX IF NOT EXISTS idx_lic_logs_empresa_data ON licenca_logs (empresa_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_filiais_empresa_ativo ON filiais (empresa_id, ativo);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_filiais_empresa_cnpj ON filiais (empresa_id, cnpj) WHERE cnpj IS NOT NULL AND cnpj <> '';
 CREATE INDEX IF NOT EXISTS idx_pdvs_empresa_filial ON pdvs (empresa_id, filial_id, ativo);

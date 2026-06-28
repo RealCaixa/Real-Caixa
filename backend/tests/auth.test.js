@@ -651,6 +651,140 @@ test('licenciamento verifica, ativa PDV, reabre status e recebe heartbeat', asyn
     assert.equal(heartbeat.body.pdv.ultimo_usuario, 'operador@licenca.com');
 });
 
+test('portal de licenca visualiza, regenera, ativa, recebe heartbeat, revoga e isola por empresa', async () => {
+    const conta = await post('/api/auth/cadastro', {
+        nome: 'Cliente Licenca Portal',
+        email: 'licenca-portal@teste.com',
+        senha: '123456',
+        empresa: 'Empresa Licenca Portal',
+        cnpj: '44.444.444/0001-44',
+        plano: 'profissional'
+    });
+    assert.equal(conta.status, 201);
+    assert.match(conta.body.licenca.codigo_licenca, /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+
+    const semToken = await get('/api/licenca');
+    assert.equal(semToken.status, 401);
+
+    const resumoInicial = await get('/api/licenca', conta.body.token);
+    assert.equal(resumoInicial.status, 200);
+    assert.equal(resumoInicial.body.licenca.codigo_licenca, conta.body.licenca.codigo_licenca);
+    assert.equal(resumoInicial.body.uso.pdvs_usados, 0);
+
+    const regenerada = await post('/api/licenca/regenerar', {}, conta.body.token);
+    assert.equal(regenerada.status, 200);
+    assert.match(regenerada.body.licenca.codigo_licenca, /^[0-9a-f-]{36}$/i);
+    assert.notEqual(regenerada.body.licenca.codigo_licenca, conta.body.licenca.codigo_licenca);
+
+    const filial = await post('/api/filiais', {
+        nome: 'Filial Licenca Portal',
+        cidade: 'Sao Paulo'
+    }, conta.body.token);
+    assert.equal(filial.status, 201);
+
+    const ativacao = await post('/api/licenca/ativar', {
+        cnpj: '44.444.444/0001-44',
+        codigo_licenca: regenerada.body.licenca.codigo_licenca,
+        filial_id: filial.body.filial.id,
+        nome_pdv: 'PDV Portal',
+        codigo_pdv: 'PORTAL-LIC-01',
+        terminal_uuid: 'TERM-PORTAL-01',
+        hostname: 'caixa-portal-01',
+        versao_app: '2.2.0'
+    });
+    assert.equal(ativacao.status, 201);
+    assert.ok(ativacao.body.device_token);
+    assert.equal(ativacao.body.ativacao.terminal_uuid, 'TERM-PORTAL-01');
+    assert.equal(ativacao.body.pdv.codigo_pdv, 'PORTAL-LIC-01');
+
+    const ativacoes = await get('/api/licenca/ativacoes', conta.body.token);
+    assert.equal(ativacoes.status, 200);
+    assert.equal(ativacoes.body.total, 1);
+    assert.equal(ativacoes.body.dados[0].hostname, 'caixa-portal-01');
+    assert.equal(ativacoes.body.dados[0].device_token_hash, undefined);
+
+    const heartbeat = await postDevice('/api/licenca/heartbeat', {
+        terminal_uuid: 'TERM-PORTAL-01',
+        status: 'online',
+        versao_app: '2.2.1',
+        usuario_logado: 'operador@portal.com'
+    }, ativacao.body.device_token);
+    assert.equal(heartbeat.status, 200);
+    assert.equal(heartbeat.body.status, 'ativo');
+    assert.equal(heartbeat.body.ativacao.versao_app, '2.2.1');
+
+    const resumoComUso = await get('/api/licenca', conta.body.token);
+    assert.equal(resumoComUso.body.uso.pdvs_usados, 1);
+    assert.equal(resumoComUso.body.uso.ativacoes_realizadas, 1);
+    assert.ok(resumoComUso.body.uso.ultimo_heartbeat);
+
+    const empresaB = await post('/api/auth/cadastro', {
+        nome: 'Cliente Licenca B',
+        email: 'licenca-b-isolamento@teste.com',
+        senha: '123456',
+        empresa: 'Empresa Licenca B'
+    });
+    assert.equal(empresaB.status, 201);
+
+    const ativacoesB = await get('/api/licenca/ativacoes', empresaB.body.token);
+    assert.equal(ativacoesB.status, 200);
+    assert.equal(ativacoesB.body.total, 0);
+
+    const revogarCruzado = await post('/api/licenca/revogar', {
+        ativacao_id: ativacao.body.ativacao.id
+    }, empresaB.body.token);
+    assert.equal(revogarCruzado.status, 404);
+
+    const revogada = await post('/api/licenca/revogar', {
+        ativacao_id: ativacao.body.ativacao.id
+    }, conta.body.token);
+    assert.equal(revogada.status, 200);
+    assert.equal(revogada.body.ativacao.status, 'revogada');
+
+    const aposRevogar = await get('/api/licenca', conta.body.token);
+    assert.equal(aposRevogar.body.uso.ativacoes_realizadas, 0);
+});
+
+test('licenciamento bloqueia ativacao quando excede limite de PDVs', async () => {
+    const conta = await post('/api/auth/cadastro', {
+        nome: 'Cliente Limite Licenca',
+        email: 'licenca-limite@teste.com',
+        senha: '123456',
+        empresa: 'Empresa Limite Licenca',
+        cnpj: '55.555.555/0001-55',
+        plano: 'basico'
+    });
+    assert.equal(conta.status, 201);
+    assert.equal(conta.body.licenca.limite_pdvs, 1);
+
+    const filial = await post('/api/filiais', {
+        nome: 'Filial Limite',
+        cidade: 'Sao Paulo'
+    }, conta.body.token);
+    assert.equal(filial.status, 201);
+
+    const primeira = await post('/api/licenca/ativar', {
+        cnpj: '55.555.555/0001-55',
+        codigo_licenca: conta.body.licenca.codigo_licenca,
+        filial_id: filial.body.filial.id,
+        nome_pdv: 'PDV Limite 1',
+        codigo_pdv: 'LIMITE-01',
+        terminal_uuid: 'TERM-LIMITE-01'
+    });
+    assert.equal(primeira.status, 201);
+
+    const excedida = await post('/api/licenca/ativar', {
+        cnpj: '55.555.555/0001-55',
+        codigo_licenca: conta.body.licenca.codigo_licenca,
+        filial_id: filial.body.filial.id,
+        nome_pdv: 'PDV Limite 2',
+        codigo_pdv: 'LIMITE-02',
+        terminal_uuid: 'TERM-LIMITE-02'
+    });
+    assert.equal(excedida.status, 403);
+    assert.match(excedida.body.erro, /Limite de PDVs/);
+});
+
 test('servico de ativacao do PDV salva ativacao local, reabre online e libera offline', async () => {
     const conta = await post('/api/auth/cadastro', {
         nome: 'Cliente Desktop',

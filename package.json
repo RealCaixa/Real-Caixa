@@ -4,6 +4,7 @@
   "private": true,
   "description": "Portal Cloud Real Caixa preparado para homologacao.",
   "scripts": {
+    "test": "npm --prefix backend test",
     "vercel-build": "node -e \"console.log('Real Caixa Site pronto para Vercel')\""
   },
   "dependencies": {

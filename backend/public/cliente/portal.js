@@ -193,7 +193,7 @@ const modules = {
         section: 'Administracao',
         title: 'Licenca',
         description: 'Consulte plano contratado, limites e situacao da assinatura.',
-        type: 'placeholder',
+        type: 'licenca',
         columns: ['Plano', 'Limite', 'Status']
     },
     configuracoes: {
@@ -839,6 +839,102 @@ function renderPlaceholder(module, protectedInfo) {
     `;
 }
 
+async function renderLicenca() {
+    const data = await requestJson('/api/licenca');
+    const licenca = data.licenca || {};
+    const uso = data.uso || {};
+    const dispositivos = data.dispositivos || [];
+
+    document.getElementById('pageBody').innerHTML = `
+        <section class="metric-grid">
+            <article class="metric-card license"><div class="metric-label">Plano</div><div class="metric-value">${escapeHtml(licenca.plano || 'basico')}</div><div class="metric-caption">Status ${escapeHtml(statusLabel(licenca.status))}</div></article>
+            <article class="metric-card"><div class="metric-label">PDVs</div><div class="metric-value">${Number(uso.pdvs_usados || 0)} / ${Number(uso.pdvs_limite || 0)}</div><div class="metric-caption">Ativacoes ativas consomem limite</div></article>
+            <article class="metric-card"><div class="metric-label">Filiais</div><div class="metric-value">${Number(uso.filiais_usadas || 0)} / ${Number(uso.filiais_limite || 0)}</div><div class="metric-caption">Unidades ativas da empresa</div></article>
+            <article class="metric-card"><div class="metric-label">Heartbeat</div><div class="metric-value">${uso.ultimo_heartbeat ? formatDateTime(uso.ultimo_heartbeat) : 'Sem registro'}</div><div class="metric-caption">${Number(uso.ativacoes_realizadas || 0)} ativacao(oes) ativas</div></article>
+        </section>
+        <section class="work-grid">
+            <article class="panel">
+                <div class="list-header">
+                    <h2>Licenca da empresa</h2>
+                    <div class="row-actions">
+                        <button type="button" class="secondary-button" onclick="copiarLicenca()">Copiar</button>
+                        <button type="button" class="primary-button" onclick="regenerarLicenca()">Regenerar</button>
+                    </div>
+                </div>
+                <div class="data-table">
+                    <div class="data-row"><span>Codigo da licenca</span><strong id="licenseCode">${escapeHtml(licenca.codigo_licenca || 'Nao gerado')}</strong><span>${statusBadge(licenca.status)}</span></div>
+                    <div class="data-row"><span>Plano</span><strong>${escapeHtml(licenca.plano || 'basico')}</strong><span>Criada em ${formatDateTime(licenca.created_at)}</span></div>
+                    <div class="data-row"><span>Validade</span><strong>${licenca.expira_em ? formatDateTime(licenca.expira_em) : 'Sem expiracao'}</strong><span>${Number(uso.ativacoes_realizadas || 0)} ativacao(oes)</span></div>
+                </div>
+                <div class="feedback-box" id="licencaFeedback"></div>
+            </article>
+            <article class="panel">
+                <h2>Limites operacionais</h2>
+                <div class="module-list">
+                    <div class="module-row"><span><strong>PDVs usados</strong><span>${Number(uso.pdvs_usados || 0)} terminais cadastrados</span></span><span class="tag">${Number(uso.pdvs_limite || 0)}</span></div>
+                    <div class="module-row"><span><strong>Filiais usadas</strong><span>${Number(uso.filiais_usadas || 0)} unidades ativas</span></span><span class="tag">${Number(uso.filiais_limite || 0)}</span></div>
+                    <div class="module-row"><span><strong>Ativacoes realizadas</strong><span>Dispositivos vinculados a licenca</span></span><span class="tag success">${Number(uso.ativacoes_realizadas || 0)}</span></div>
+                </div>
+            </article>
+        </section>
+        <section class="panel" style="margin-top: 16px;">
+            <div class="list-header">
+                <h2>Dispositivos vinculados</h2>
+            </div>
+            <div class="data-table">
+                <div class="data-row license-device-row data-head"><span>Dispositivo</span><span>PDV</span><span>Heartbeat</span><span>Status</span><span>Acoes</span></div>
+                ${dispositivos.map((item) => `
+                    <div class="data-row license-device-row">
+                        <span><strong>${escapeHtml(item.hostname || 'Sem hostname')}</strong><small>${escapeHtml(item.terminal_uuid || 'Sem terminal UUID')}<br>Versao ${escapeHtml(item.versao_app || 'nao informada')}</small></span>
+                        <span>${escapeHtml(item.pdv_nome || item.codigo_pdv || 'Sem PDV')}<small>${escapeHtml(item.filial_nome || '')}</small></span>
+                        <span>${formatDateTime(item.ultimo_heartbeat_at)}</span>
+                        <span>${statusBadge(item.status)}</span>
+                        <span class="row-actions">${item.status === 'ativa' ? `<button type="button" class="danger-link" onclick="revogarAtivacao(${item.id})">Revogar</button>` : ''}</span>
+                    </div>
+                `).join('') || '<div class="empty-state">Nenhum dispositivo vinculado.</div>'}
+            </div>
+        </section>
+    `;
+}
+
+async function copiarLicenca() {
+    const codigo = document.getElementById('licenseCode')?.textContent || '';
+    try {
+        await navigator.clipboard.writeText(codigo);
+        showFeedback('licencaFeedback', 'Codigo da licenca copiado.', 'success');
+    } catch (_) {
+        showFeedback('licencaFeedback', codigo, 'success');
+    }
+}
+
+async function regenerarLicenca() {
+    if (!window.confirm('Regenerar o codigo da licenca? PDVs existentes continuam vinculados, mas novas ativacoes usarao o novo codigo.')) return;
+    try {
+        await sendJson('/api/licenca/regenerar', 'POST', {});
+        await renderLicenca();
+        showFeedback('licencaFeedback', 'Licenca regenerada com sucesso.', 'success');
+    } catch (error) {
+        showFeedback('licencaFeedback', error.message, 'error');
+    }
+}
+
+async function revogarAtivacao(id) {
+    if (!window.confirm('Revogar esta ativacao de PDV?')) return;
+    try {
+        await sendJson('/api/licenca/revogar', 'POST', { ativacao_id: id });
+        await renderLicenca();
+        showFeedback('licencaFeedback', 'Ativacao revogada.', 'success');
+    } catch (error) {
+        showFeedback('licencaFeedback', error.message, 'error');
+    }
+}
+
+function statusBadge(status) {
+    const value = status || 'indefinido';
+    const classe = value === 'ativa' || value === 'ativo' ? '' : value === 'revogada' || value === 'bloqueado' ? 'danger' : 'warning';
+    return `<b class="status-badge ${classe}">${escapeHtml(statusLabel(value))}</b>`;
+}
+
 async function renderSincronizacao() {
     const data = await requestJson('/api/sync/auditoria');
     const pdvs = data.pdvs || [];
@@ -1151,8 +1247,10 @@ function statusLabel(status) {
         erro: 'Erro',
         bloqueado: 'Bloqueado',
         inativo: 'Inativo',
+        ativa: 'Ativa',
         ativo: 'Ativo',
         expirado: 'Expirado',
+        revogada: 'Revogada',
         aguardando_ativacao: 'Aguardando ativacao'
     };
     return labels[status] || status || 'Indefinido';
@@ -1505,6 +1603,8 @@ async function boot() {
         await renderFiliais();
     } else if (module.type === 'pdvs') {
         await renderPdvs();
+    } else if (module.type === 'licenca') {
+        await renderLicenca();
     } else if (module.type === 'sincronizacao') {
         await renderSincronizacao();
     } else if (module.type === 'assistente') {
@@ -1571,3 +1671,6 @@ window.resetPdvForm = resetPdvForm;
 window.editarFinCategoria = editarFinCategoria;
 window.excluirFinCategoria = excluirFinCategoria;
 window.resetFinCatForm = resetFinCatForm;
+window.copiarLicenca = copiarLicenca;
+window.regenerarLicenca = regenerarLicenca;
+window.revogarAtivacao = revogarAtivacao;

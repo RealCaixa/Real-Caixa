@@ -123,11 +123,16 @@ function empresaSeguro(empresa) {
 function licencaSeguro(licenca) {
     return {
         id: licenca?.id || null,
+        codigo_licenca: licenca?.codigo_licenca || null,
         plano: licenca?.plano || 'basico',
         status: licenca?.status || 'ativa',
         limite_usuarios: licenca?.limite_usuarios || 1,
         limite_produtos: licenca?.limite_produtos || 50,
-        limite_vendas_mes: licenca?.limite_vendas_mes || 100
+        limite_vendas_mes: licenca?.limite_vendas_mes || 100,
+        limite_pdvs: licenca?.limite_pdvs || 1,
+        limite_filiais: licenca?.limite_filiais || 1,
+        expira_em: licenca?.expira_em || null,
+        created_at: licenca?.created_at || null
     };
 }
 
