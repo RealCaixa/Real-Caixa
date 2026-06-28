@@ -18,6 +18,10 @@ async function main() {
     results.push(await checkHtml('GET', '/login', [200]));
     results.push(await checkHtml('GET', '/dashboard', [200]));
 
+    results.push(await checkJson('GET', '/api/licenca', null, [401], (body) => {
+        assert(body.erro && body.erro !== 'Rota nao encontrada.', 'licenca deve existir e exigir JWT');
+    }));
+
     results.push(await checkJson('POST', '/api/licenca/verificar', {
         cnpj: '00.000.000/0000-00',
         codigo_licenca: 'SMOKE-INVALIDO'
